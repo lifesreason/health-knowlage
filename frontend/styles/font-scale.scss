@@ -1,0 +1,90 @@
+/* 适老化字体倍率变量 */
+:root {
+  --font-scale: 1.0;
+
+  /* 紫色系色彩方案 */
+  --primary-color: #6C5CE7;      /* 智慧紫 - 主色调 */
+  --secondary-color: #00B894;   /* 生命青 - 辅助色 */
+  --accent-color: #E17055;      /* 活力橙 - 强调色 */
+  --bg-color: #FDF6F6;          /* 柔和背景 */
+  --text-color: #2D3436;        /* 深空灰 - 文字色 */
+  --text-light: #636E72;        /* 浅灰 - 次要文字 */
+  --border-color: #E0E0E0;      /* 边框色 */
+  --success-color: #00B894;     /* 成功色 */
+  --warning-color: #FDCB6E;     /* 警告色 */
+  --danger-color: #FF7675;      /* 危险色 */
+}
+
+/* 基础字体大小设置 */
+.text-scale {
+  font-size: calc(16px * var(--font-scale));
+}
+
+.text-scale-sm {
+  font-size: calc(14px * var(--font-scale));
+}
+
+.text-scale-lg {
+  font-size: calc(18px * var(--font-scale));
+}
+
+.text-scale-xl {
+  font-size: calc(20px * var(--font-scale));
+}
+
+/* 大标题 */
+.text-scale-title {
+  font-size: calc(24px * var(--font-scale));
+  font-weight: bold;
+}
+
+/* 小标题 */
+.text-scale-subtitle {
+  font-size: calc(16px * var(--font-scale));
+  font-weight: bold;
+}
+
+/* 点击热区放大 */
+.clickable-area {
+  min-width: calc(44px * var(--font-scale));
+  min-height: calc(44px * var(--font-scale));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 按钮字体放大 */
+button {
+  font-size: calc(16px * var(--font-scale)) !important;
+}
+
+/* 输入框字体放大 */
+input,
+textarea {
+  font-size: calc(16px * var(--font-scale)) !important;
+}
+
+/* 间距适配 */
+.padding-lg {
+  padding: calc(16px * var(--font-scale));
+}
+
+.padding-md {
+  padding: calc(12px * var(--font-scale));
+}
+
+.padding-sm {
+  padding: calc(8px * var(--font-scale));
+}
+
+.margin-lg {
+  margin: calc(16px * var(--font-scale));
+}
+
+.margin-md {
+  margin: calc(12px * var(--font-scale));
+}
+
+.margin-sm {
+  margin: calc(8px * var(--font-scale));
+}

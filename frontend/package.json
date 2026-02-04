@@ -1,0 +1,1 @@
+{"name": "silverhealth-frontend", "version": "1.0.0", "description": "银龄健康社区小程序 - 前端", "main": "main.js", "dependencies": {"vue": "^3.4.21", "pinia": "^2.1.7", "luch-request": "^3.1.1"}}

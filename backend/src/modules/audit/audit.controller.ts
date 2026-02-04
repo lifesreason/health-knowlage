@@ -1,0 +1,86 @@
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { AuditService } from './audit.service';
+
+@ApiTags('审核管理')
+@Controller('audit')
+export class AuditController {
+  constructor(private readonly auditService: AuditService) {}
+
+  /**
+   * 获取待审核列表
+   */
+  @Get('pending')
+  @ApiOperation({ summary: '获取待审核列表' })
+  @ApiBearerAuth()
+  async getPendingList(
+    @Query('page') page: string = '1',
+    @Query('pageSize') pageSize: string = '20',
+    @Query('status') status?: string,
+  ) {
+    return this.auditService.getPendingList({
+      page: +page,
+      pageSize: +pageSize,
+      status: status ? +status : undefined,
+    });
+  }
+
+  /**
+   * 获取审核统计
+   */
+  @Get('stats')
+  @ApiOperation({ summary: '获取审核统计' })
+  @ApiBearerAuth()
+  async getStats() {
+    return this.auditService.getStats();
+  }
+
+  /**
+   * 获取审核历史
+   */
+  @Get('history/:postId')
+  @ApiOperation({ summary: '获取审核历史' })
+  @ApiBearerAuth()
+  async getAuditHistory(@Param('postId') postId: string) {
+    return this.auditService.getAuditHistory(+postId);
+  }
+
+  /**
+   * 审核通过
+   */
+  @Post(':postId/approve')
+  @ApiOperation({ summary: '审核通过' })
+  @ApiBearerAuth()
+  async approve(@Param('postId') postId: string, @Request() req) {
+    return this.auditService.approve(+postId, req.user?.username || 'ADMIN');
+  }
+
+  /**
+   * 审核驳回
+   */
+  @Post(':postId/reject')
+  @ApiOperation({ summary: '审核驳回' })
+  @ApiBearerAuth()
+  async reject(
+    @Param('postId') postId: string,
+    @Body('rejectReason') rejectReason: string,
+    @Request() req,
+  ) {
+    return this.auditService.reject(+postId, rejectReason, req.user?.username || 'ADMIN');
+  }
+
+  /**
+   * 批量审核
+   */
+  @Post('batch')
+  @ApiOperation({ summary: '批量审核' })
+  @ApiBearerAuth()
+  async batchAudit(
+    @Body('postIds') postIds: number[],
+    @Body('action') action: 'approve' | 'reject',
+    @Body('rejectReason') rejectReason?: string,
+    @Request() req,
+  ) {
+    return this.auditService.batchAudit(postIds, action, rejectReason, req.user?.username || 'ADMIN');
+  }
+}
