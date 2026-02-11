@@ -101,7 +101,7 @@ export class AuditService {
   /**
    * 批量审核
    */
-  async batchAudit(postIds: number[], action: 'approve' | 'reject', rejectReason?: string, operator: string) {
+  async batchAudit(postIds: number[], action: 'approve' | 'reject', operator: string, rejectReason?: string) {
     const status = action === 'approve' ? 1 : 2;
 
     await this.postRepository.update(

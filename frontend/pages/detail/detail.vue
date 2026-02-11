@@ -1,527 +1,537 @@
 <template>
-  <view class="detail-container">
+  <view class="detail-page" :style="{ '--font-scale': fontScale }">
     <!-- 加载状态 -->
-    <view v-if="loading" class="loading">
-      <text class="loading-text text-scale">加载中...</text>
+    <view v-if="loading" class="loading-state">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">加载中...</text>
     </view>
 
-    <!-- 内容展示 -->
-    <view v-else-if="postDetail" class="detail-content">
+    <!-- 文章内容 -->
+    <scroll-view v-else-if="article" class="article-scroll" scroll-y>
+      <!-- 顶部圈子标签 -->
+      <view class="circle-header" v-if="article.circle">
+        <view class="circle-tag">
+          <text class="circle-icon">📚</text>
+          <text class="circle-name">{{ article.circle.name }}</text>
+        </view>
+      </view>
+
+      <!-- 文章标题 -->
+      <view class="title-section">
+        <text class="article-title">{{ article.title || '无标题' }}</text>
+      </view>
+
       <!-- 作者信息 -->
-      <view class="author-bar">
-        <image class="avatar" :src="postDetail.user?.avatarUrl || '/static/images/default-avatar.png'" mode="aspectFill" @click="goToUserProfile(postDetail.userId)"></image>
-        <view class="author-info" @click="goToUserProfile(postDetail.userId)">
-          <view class="author-name text-scale">{{ postDetail.user?.nickname }}</view>
-          <view class="publish-time text-scale-sm">{{ formatTime(postDetail.createdAt) }}</view>
-        </view>
-        <view class="follow-btn" @click="toggleFollow" v-if="!postDetail.user?.isMe">
-          <text class="text-scale-sm">{{ postDetail.user?.followed ? '已关注' : '关注' }}</text>
-        </view>
-      </view>
-
-      <!-- 标题 -->
-      <view v-if="postDetail.title" class="post-title text-scale-lg">{{ postDetail.title }}</view>
-
-      <!-- 内容 -->
-      <view class="post-content text-scale">
-        <text>{{ postDetail.content }}</text>
-      </view>
-
-      <!-- 媒体内容 -->
-      <view v-if="postDetail.type === 2 && postDetail.videoUrl" class="media-section">
-        <video class="video-player" :src="postDetail.videoUrl" :poster="postDetail.videoMeta?.coverUrl" object-fit="contain"></video>
-      </view>
-      <view v-else-if="postDetail.mediaUrls && postDetail.mediaUrls.length > 0" class="media-section">
-        <image
-          v-for="(img, index) in postDetail.mediaUrls"
-          :key="index"
-          class="post-image"
-          :src="img"
-          mode="widthFix"
-          @click="previewImage(index)"
+      <view class="author-section">
+        <image 
+          class="author-avatar" 
+          :src="article.user?.avatarUrl || '/static/default-avatar.png'" 
+          mode="aspectFill"
         ></image>
-      </view>
-
-      <!-- 话题标签 -->
-      <view v-if="postDetail.topics && postDetail.topics.length > 0" class="topics-section">
-        <view
-          v-for="(topic, index) in postDetail.topics"
-          :key="index"
-          class="topic-tag"
-          @click="searchTopic(topic)"
-        >
-          <text class="text-scale-sm"># {{ topic }}</text>
-        </view>
-      </view>
-
-      <!-- 圈子信息 -->
-      <view v-if="postDetail.circle" class="circle-info" @click="goToCircle(postDetail.circle.id)">
-        <image class="circle-cover" :src="postDetail.circle.coverUrl || '/static/images/default-circle.png'" mode="aspectFill"></image>
-        <view class="circle-detail">
-          <view class="circle-name text-scale">{{ postDetail.circle.name }}</view>
-          <view class="circle-desc text-scale-sm">{{ postDetail.circle.description }}</view>
-        </view>
-        <text class="arrow-icon">›</text>
-      </view>
-
-      <!-- 操作栏 -->
-      <view class="action-bar">
-        <view class="action-item" @click="toggleLike">
-          <text class="action-icon" :style="{ color: postDetail.liked ? '#ff4757' : '#999' }">
-            {{ postDetail.liked ? '❤' : '♡' }}
-          </text>
-          <text class="action-text text-scale-sm">{{ postDetail.likeCount || 0 }}</text>
-        </view>
-        <view class="action-item" @click="openComment">
-          <text class="action-icon">💬</text>
-          <text class="action-text text-scale-sm">{{ postDetail.commentCount || 0 }}</text>
-        </view>
-        <view class="action-item" @click="toggleCollect">
-          <text class="action-icon" :style="{ color: postDetail.collected ? '#ffd700' : '#999' }">
-            {{ postDetail.collected ? '★' : '☆' }}
-          </text>
-          <text class="action-text text-scale-sm">{{ postDetail.collected || 0 }}</text>
-        </view>
-        <view class="action-item" @click="sharePost">
-          <text class="action-icon">↗</text>
-          <text class="action-text text-scale-sm">分享</text>
-        </view>
-      </view>
-
-      <!-- 评论区 -->
-      <view class="comment-section">
-        <view class="section-header text-scale">评论 ({{ postDetail.commentCount || 0 }})</view>
-        <view v-if="postDetail.commentCount > 0" class="comment-list">
-          <view
-            v-for="comment in comments"
-            :key="comment.id"
-            class="comment-item"
-          >
-            <image class="comment-avatar" :src="comment.user?.avatarUrl || '/static/images/default-avatar.png'" mode="aspectFill"></image>
-            <view class="comment-content">
-              <view class="comment-user text-scale">{{ comment.user?.nickname }}</view>
-              <view class="comment-text text-scale">{{ comment.content }}</view>
-              <view class="comment-meta text-scale-sm">
-                <text>{{ formatTime(comment.createdAt) }}</text>
-                <text @click="replyComment(comment)">回复</text>
-              </view>
-            </view>
+        <view class="author-info">
+          <text class="author-name">{{ article.user?.nickname || '系统管理员' }}</text>
+          <view class="publish-meta">
+            <text class="publish-time">{{ formatTime(article.createdAt) }}</text>
+            <text class="view-count">· {{ article.viewCount || 0 }} 阅读</text>
           </view>
         </view>
-        <view v-else class="empty-comment text-scale-sm">暂无评论，快来抢沙发吧</view>
+        <view class="follow-btn">
+          <text>关注</text>
+        </view>
+      </view>
+
+      <!-- 分割线 -->
+      <view class="divider"></view>
+
+      <!-- 正文内容 -->
+      <view class="content-section">
+        <rich-text class="article-body" :nodes="article.content"></rich-text>
+      </view>
+
+      <!-- 图片列表 -->
+      <view v-if="article.mediaUrls?.length" class="media-section">
+        <view class="media-grid" :class="getGridClass(article.mediaUrls.length)">
+          <image 
+            v-for="(url, index) in article.mediaUrls" 
+            :key="index"
+            class="media-image"
+            :src="url"
+            mode="aspectFill"
+            @click="previewImage(url, index)"
+          ></image>
+        </view>
+      </view>
+
+      <!-- 标签区域 -->
+      <view class="tags-section" v-if="article.tags?.length">
+        <view class="tag-item" v-for="tag in article.tags" :key="tag">
+          <text>#{{ tag }}</text>
+        </view>
+      </view>
+
+      <!-- 互动数据 -->
+      <view class="stats-section">
+        <view class="stat-item">
+          <text class="stat-num">{{ article.likeCount || 0 }}</text>
+          <text class="stat-label">点赞</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-num">{{ article.commentCount || 0 }}</text>
+          <text class="stat-label">评论</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-num">{{ article.collectCount || 0 }}</text>
+          <text class="stat-label">收藏</text>
+        </view>
+      </view>
+
+      <!-- 底部占位 -->
+      <view class="bottom-placeholder"></view>
+    </scroll-view>
+
+    <!-- 底部操作栏 -->
+    <view class="footer-bar" v-if="article">
+      <view class="input-area" @click="showCommentInput = true">
+        <text class="input-placeholder">说点什么...</text>
+      </view>
+      <view class="action-btns">
+        <view class="action-btn" :class="{ active: article.isLiked }" @click="handleLike">
+          <text class="action-icon">{{ article.isLiked ? '❤️' : '🤍' }}</text>
+          <text class="action-num">{{ article.likeCount || '' }}</text>
+        </view>
+        <view class="action-btn" @click="showComments = true">
+          <text class="action-icon">💬</text>
+          <text class="action-num">{{ article.commentCount || '' }}</text>
+        </view>
+        <view class="action-btn" :class="{ active: article.isCollected }" @click="handleCollect">
+          <text class="action-icon">{{ article.isCollected ? '⭐' : '☆' }}</text>
+        </view>
+        <button class="action-btn share-btn" open-type="share">
+          <text class="action-icon">📤</text>
+        </button>
       </view>
     </view>
-
-    <!-- 评论弹窗 -->
-    <comment-modal
-      :show="showComment"
-      :post-id="postId"
-      @update:show="showComment = $event"
-      @update="loadDetail"
-    />
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { onLoad } from '@dcloudio/uni-app';
-import { getPostDetail, likePost, unlikePost, collectPost, uncollectPost } from '@/api/feed';
-import { getComments } from '@/api/comment';
+import { ref } from 'vue';
+import { onLoad, onShareAppMessage } from '@dcloudio/uni-app';
+import { useThemeStore } from '@/store/theme';
 import { useUserStore } from '@/store/user';
+import { storeToRefs } from 'pinia';
+import { formatRelativeTime } from '@/common/utils';
+import { postApi, interactionApi } from '@/api';
 
+const themeStore = useThemeStore();
 const userStore = useUserStore();
+const { fontScale } = storeToRefs(themeStore);
 
-const postId = ref(0);
+const articleId = ref(0);
+const article = ref<any>(null);
 const loading = ref(true);
-const postDetail = ref<any>(null);
-const comments = ref<any[]>([]);
-const showComment = ref(false);
+const showComments = ref(false);
+const showCommentInput = ref(false);
 
-// 加载详情
-const loadDetail = async () => {
+const formatTime = (time: string) => formatRelativeTime(time);
+
+const getGridClass = (count: number) => {
+  if (count === 1) return 'grid-1';
+  if (count === 2) return 'grid-2';
+  if (count === 4) return 'grid-4';
+  return 'grid-3';
+};
+
+const loadArticle = async () => {
   loading.value = true;
   try {
-    postDetail.value = await getPostDetail(postId.value);
-    await loadComments();
+    const res = await postApi.getDetail(articleId.value);
+    article.value = res;
   } catch (error) {
-    console.error('加载详情失败', error);
+    console.error('加载文章失败', error);
     uni.showToast({ title: '加载失败', icon: 'none' });
   } finally {
     loading.value = false;
   }
 };
 
-// 加载评论
-const loadComments = async () => {
+const handleLike = async () => {
+  if (!userStore.requireLogin() || !article.value) return;
+  article.value.isLiked = !article.value.isLiked;
+  article.value.likeCount += article.value.isLiked ? 1 : -1;
   try {
-    const data = await getComments({
-      postId: postId.value,
-      page: 1,
-      pageSize: 10,
-    });
-    comments.value = data.list || [];
-  } catch (error) {
-    console.error('加载评论失败', error);
+    await interactionApi.like({ targetId: article.value.id, targetType: 'post' });
+  } catch {
+    article.value.isLiked = !article.value.isLiked;
+    article.value.likeCount += article.value.isLiked ? 1 : -1;
   }
 };
 
-// 点赞
-const toggleLike = async () => {
-  if (!userStore.isLoggedIn) {
-    uni.showToast({ title: '请先登录', icon: 'none' });
-    return;
-  }
-
+const handleCollect = async () => {
+  if (!userStore.requireLogin() || !article.value) return;
+  article.value.isCollected = !article.value.isCollected;
   try {
-    if (postDetail.value.liked) {
-      await unlikePost(postId.value);
-      postDetail.value.liked = false;
-      postDetail.value.likeCount--;
-    } else {
-      await likePost(postId.value);
-      postDetail.value.liked = true;
-      postDetail.value.likeCount++;
-    }
-  } catch (error) {
-    console.error('点赞失败', error);
+    await interactionApi.collect({ targetId: article.value.id, targetType: 'post' });
+  } catch {
+    article.value.isCollected = !article.value.isCollected;
   }
 };
 
-// 收藏
-const toggleCollect = async () => {
-  if (!userStore.isLoggedIn) {
-    uni.showToast({ title: '请先登录', icon: 'none' });
-    return;
-  }
-
-  try {
-    if (postDetail.value.collected) {
-      await uncollectPost(postId.value);
-      postDetail.value.collected = false;
-      postDetail.value.collectCount--;
-    } else {
-      await collectPost(postId.value);
-      postDetail.value.collected = true;
-      postDetail.value.collectCount++;
-    }
-  } catch (error) {
-    console.error('收藏失败', error);
-  }
+const previewImage = (url: string, index: number) => {
+  uni.previewImage({ current: index, urls: article.value?.mediaUrls || [url] });
 };
 
-// 关注
-const toggleFollow = () => {
-  if (!userStore.isLoggedIn) {
-    uni.showToast({ title: '请先登录', icon: 'none' });
-    return;
-  }
-  uni.showToast({ title: '关注功能待实现', icon: 'none' });
-};
-
-// 打开评论
-const openComment = () => {
-  if (!userStore.isLoggedIn) {
-    uni.showToast({ title: '请先登录', icon: 'none' });
-    return;
-  }
-  showComment.value = true;
-};
-
-// 回复评论
-const replyComment = (comment: any) => {
-  if (!userStore.isLoggedIn) {
-    uni.showToast({ title: '请先登录', icon: 'none' });
-    return;
-  }
-  showComment.value = true;
-};
-
-// 分享
-const sharePost = () => {
-  uni.shareAppMessage({
-    title: postDetail.value?.title || '银龄健康',
-    path: `/pages/detail/detail?id=${postId.value}`,
-    imageUrl: postDetail.value?.mediaUrls?.[0] || '',
-  });
-};
-
-// 预览图片
-const previewImage = (index: number) => {
-  uni.previewImage({
-    current: index,
-    urls: postDetail.value.mediaUrls || [],
-  });
-};
-
-// 搜索话题
-const searchTopic = (topic: string) => {
-  uni.showToast({ title: `搜索话题：${topic}`, icon: 'none' });
-};
-
-// 跳转用户主页
-const goToUserProfile = (userId: number) => {
-  uni.navigateTo({
-    url: `/pages/me/me?userId=${userId}`,
-  });
-};
-
-// 跳转圈子
-const goToCircle = (circleId: number) => {
-  uni.navigateTo({
-    url: `/pages/circle-detail/circle-detail?id=${circleId}`,
-  });
-};
-
-// 格式化时间
-const formatTime = (time: string) => {
-  const now = Date.now();
-  const diff = now - new Date(time).getTime();
-  const minute = 60 * 1000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-
-  if (diff < minute) {
-    return '刚刚';
-  } else if (diff < hour) {
-    return `${Math.floor(diff / minute)}分钟前`;
-  } else if (diff < day) {
-    return `${Math.floor(diff / hour)}小时前`;
-  } else if (diff < day * 7) {
-    return `${Math.floor(diff / day)}天前`;
-  } else {
-    return new Date(time).toLocaleDateString();
-  }
-};
+onShareAppMessage(() => ({
+  title: article.value?.title || '银龄健康',
+  path: `/pages/detail/detail?id=${articleId.value}`,
+}));
 
 onLoad((options: any) => {
   if (options.id) {
-    postId.value = +options.id;
-    loadDetail();
+    articleId.value = +options.id;
+    loadArticle();
   }
 });
 </script>
 
 <style lang="scss" scoped>
-.detail-container {
+.detail-page {
   min-height: 100vh;
-  background-color: #f8f8f8;
+  background: #f8f9fa;
 }
 
-.loading {
+// 加载状态
+.loading-state {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 100rpx 0;
-  
-  .loading-text {
-    color: #999;
-  }
+  height: 60vh;
+  gap: 24rpx;
 }
 
-.detail-content {
-  padding: 24rpx;
-  background-color: #fff;
+.loading-spinner {
+  width: 64rpx;
+  height: 64rpx;
+  border: 4rpx solid #e8e8e8;
+  border-top-color: #E17055;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
-.author-bar {
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: calc(14px * var(--font-scale));
+  color: #999;
+}
+
+// 文章滚动区
+.article-scroll {
+  height: 100vh;
+  background: #fff;
+}
+
+// 圈子标签
+.circle-header {
+  padding: 32rpx 32rpx 0;
+}
+
+.circle-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  background: linear-gradient(135deg, #fff5f3 0%, #ffeee8 100%);
+  padding: 12rpx 24rpx;
+  border-radius: 32rpx;
+  border: 1rpx solid #ffd4c4;
+}
+
+.circle-icon {
+  font-size: 28rpx;
+}
+
+.circle-name {
+  font-size: calc(12px * var(--font-scale));
+  color: #E17055;
+  font-weight: 500;
+}
+
+// 标题区
+.title-section {
+  padding: 32rpx;
+  padding-bottom: 0;
+}
+
+.article-title {
+  font-size: calc(22px * var(--font-scale));
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1.4;
+  letter-spacing: 0.5rpx;
+}
+
+// 作者区
+.author-section {
   display: flex;
   align-items: center;
-  gap: 16rpx;
-  padding: 24rpx 0;
-  border-bottom: 1rpx solid #f5f5f5;
+  padding: 32rpx;
+  gap: 20rpx;
 }
 
-.avatar {
-  width: 80rpx;
-  height: 80rpx;
-  border-radius: 40rpx;
+.author-avatar {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  border: 4rpx solid #fff;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
 }
 
 .author-info {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
 }
 
 .author-name {
-  font-weight: bold;
-  color: #333;
+  font-size: calc(15px * var(--font-scale));
+  font-weight: 600;
+  color: #1a1a1a;
+  display: block;
+  margin-bottom: 8rpx;
 }
 
-.publish-time {
+.publish-meta {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.publish-time, .view-count {
+  font-size: calc(12px * var(--font-scale));
   color: #999;
-  font-size: 24rpx;
 }
 
 .follow-btn {
-  padding: 12rpx 32rpx;
-  border: 2rpx solid #3cc51f;
+  background: linear-gradient(135deg, #E17055 0%, #d45d43 100%);
+  color: #fff;
+  padding: 16rpx 32rpx;
   border-radius: 32rpx;
-  color: #3cc51f;
-  font-size: 24rpx;
+  font-size: calc(13px * var(--font-scale));
+  font-weight: 500;
+  box-shadow: 0 8rpx 24rpx rgba(225, 112, 85, 0.3);
 }
 
-.post-title {
-  font-weight: bold;
+// 分割线
+.divider {
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, #eee 20%, #eee 80%, transparent);
+  margin: 0 32rpx;
+}
+
+// 正文
+.content-section {
+  padding: 32rpx;
+}
+
+.article-body {
+  font-size: calc(16px * var(--font-scale));
+  line-height: 2;
   color: #333;
-  margin: 24rpx 0 16rpx;
+  letter-spacing: 0.5rpx;
 }
 
-.post-content {
-  color: #666;
-  line-height: 1.8;
-  margin-bottom: 24rpx;
-  white-space: pre-wrap;
-  word-wrap: break-word;
+// 深度选择器处理富文本内的样式
+:deep(.article-body) {
+  img {
+    max-width: 100%;
+    border-radius: 16rpx;
+    margin: 16rpx 0;
+  }
+  
+  p {
+    margin-bottom: 24rpx;
+  }
+  
+  h1, h2, h3 {
+    font-weight: 700;
+    margin: 32rpx 0 16rpx;
+    color: #1a1a1a;
+  }
+  
+  blockquote {
+    border-left: 6rpx solid #E17055;
+    padding-left: 24rpx;
+    margin: 24rpx 0;
+    color: #666;
+    font-style: italic;
+  }
 }
 
+// 图片区
 .media-section {
-  margin: 24rpx 0;
+  padding: 0 32rpx;
+  margin-bottom: 32rpx;
 }
 
-.video-player {
+.media-grid {
+  display: grid;
+  gap: 12rpx;
+  border-radius: 16rpx;
+  overflow: hidden;
+  
+  &.grid-1 {
+    grid-template-columns: 1fr;
+    .media-image { height: 400rpx; }
+  }
+  
+  &.grid-2 {
+    grid-template-columns: 1fr 1fr;
+    .media-image { height: 300rpx; }
+  }
+  
+  &.grid-3 {
+    grid-template-columns: 1fr 1fr 1fr;
+    .media-image { height: 220rpx; }
+  }
+  
+  &.grid-4 {
+    grid-template-columns: 1fr 1fr;
+    .media-image { height: 280rpx; }
+  }
+}
+
+.media-image {
   width: 100%;
-  border-radius: 12rpx;
+  object-fit: cover;
+  background: #f5f5f5;
 }
 
-.post-image {
-  width: 100%;
-  border-radius: 12rpx;
-  margin-bottom: 12rpx;
-}
-
-.topics-section {
+// 标签
+.tags-section {
   display: flex;
   flex-wrap: wrap;
-  gap: 12rpx;
-  margin: 24rpx 0;
+  gap: 16rpx;
+  padding: 0 32rpx 32rpx;
 }
 
-.topic-tag {
-  padding: 8rpx 16rpx;
-  background-color: #f0f9f4;
-  border-radius: 20rpx;
-  color: #3cc51f;
+.tag-item {
+  background: #f5f5f5;
+  padding: 12rpx 24rpx;
+  border-radius: 8rpx;
+  font-size: calc(12px * var(--font-scale));
+  color: #666;
 }
 
-.circle-info {
+// 数据统计
+.stats-section {
   display: flex;
   align-items: center;
-  gap: 16rpx;
-  padding: 24rpx;
-  background-color: #f8f8f8;
-  border-radius: 12rpx;
-  margin: 24rpx 0;
+  justify-content: center;
+  padding: 40rpx 32rpx;
+  background: #fafafa;
+  margin: 0 32rpx;
+  border-radius: 16rpx;
+  gap: 48rpx;
 }
 
-.circle-cover {
-  width: 80rpx;
-  height: 80rpx;
-  border-radius: 12rpx;
-}
-
-.circle-detail {
-  flex: 1;
+.stat-item {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 8rpx;
 }
 
-.circle-name {
-  font-weight: bold;
-  color: #333;
+.stat-num {
+  font-size: calc(20px * var(--font-scale));
+  font-weight: 700;
+  color: #1a1a1a;
 }
 
-.circle-desc {
-  color: #999;
-  font-size: 24rpx;
-}
-
-.arrow-icon {
-  font-size: 48rpx;
+.stat-label {
+  font-size: calc(12px * var(--font-scale));
   color: #999;
 }
 
-.action-bar {
+.stat-divider {
+  width: 1rpx;
+  height: 40rpx;
+  background: #e0e0e0;
+}
+
+// 底部占位
+.bottom-placeholder {
+  height: 180rpx;
+}
+
+// 底部操作栏
+.footer-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: flex;
-  gap: 48rpx;
-  padding: 24rpx 0;
-  border-top: 1rpx solid #f5f5f5;
-  border-bottom: 1rpx solid #f5f5f5;
-  margin: 24rpx 0;
+  align-items: center;
+  padding: 16rpx 24rpx;
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
+  background: #fff;
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.05);
+  gap: 16rpx;
 }
 
-.action-item {
+.input-area {
+  flex: 1;
+  background: #f5f5f5;
+  border-radius: 36rpx;
+  padding: 20rpx 32rpx;
+}
+
+.input-placeholder {
+  font-size: calc(14px * var(--font-scale));
+  color: #bbb;
+}
+
+.action-btns {
   display: flex;
   align-items: center;
   gap: 8rpx;
-  color: #999;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+  padding: 16rpx 20rpx;
+  background: transparent;
+  border: none;
+  
+  &::after {
+    display: none;
+  }
+  
+  &.active {
+    .action-icon {
+      transform: scale(1.1);
+    }
+  }
 }
 
 .action-icon {
-  font-size: 40rpx;
+  font-size: 44rpx;
+  transition: transform 0.2s ease;
 }
 
-.action-text {
-  font-size: 24rpx;
-}
-
-.comment-section {
-  margin-top: 24rpx;
-}
-
-.section-header {
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 24rpx;
-}
-
-.comment-list {
-  display: flex;
-  flex-direction: column;
-  gap: 24rpx;
-}
-
-.comment-item {
-  display: flex;
-  gap: 16rpx;
-}
-
-.comment-avatar {
-  width: 64rpx;
-  height: 64rpx;
-  border-radius: 32rpx;
-  flex-shrink: 0;
-}
-
-.comment-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
-}
-
-.comment-user {
-  font-weight: bold;
-  color: #333;
-}
-
-.comment-text {
+.action-num {
+  font-size: calc(12px * var(--font-scale));
   color: #666;
-  line-height: 1.6;
+  min-width: 24rpx;
 }
 
-.comment-meta {
-  color: #999;
-  font-size: 24rpx;
-  display: flex;
-  gap: 24rpx;
-}
-
-.empty-comment {
-  text-align: center;
-  padding: 60rpx 0;
-  color: #999;
+.share-btn {
+  background: transparent;
+  padding: 16rpx;
 }
 </style>

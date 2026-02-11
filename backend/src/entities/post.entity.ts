@@ -4,8 +4,8 @@ import { User } from './user.entity';
 import { Circle } from './circle.entity';
 
 @Entity('biz_post')
-@Index(['userId', 'createdAt'])
-@Index(['circleId', 'auditStatus', 'createdAt'], { name: 'idx_feed_query' })
+@Index('idx_user_created', ['userId', 'createdAt'])
+@Index('idx_feed_query', ['circleId', 'auditStatus', 'createdAt'])
 export class Post extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
@@ -27,6 +27,9 @@ export class Post extends BaseEntity {
 
   @Column({ type: 'json', nullable: true, name: 'media_urls' })
   mediaUrls: string[];
+
+  @Column({ type: 'varchar', length: 512, nullable: true, name: 'cover_url' })
+  coverUrl: string;
 
   @Column({ type: 'json', nullable: true, name: 'video_meta' })
   videoMeta: {

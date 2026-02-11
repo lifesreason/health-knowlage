@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like } from 'typeorm';
 import { Circle } from '../../entities/circle.entity';
 import { Post } from '../../entities/post.entity';
 
@@ -21,6 +21,85 @@ export class CircleService {
       where: { isDeleted: false },
       order: { sortOrder: 'DESC', createdAt: 'DESC' },
     });
+  }
+
+  /**
+   * 获取圈子列表（管理后台，支持分页和搜索）
+   */
+  async getAdminCircleList(params: {
+    page: number;
+    pageSize: number;
+    keyword?: string;
+  }) {
+    const { page, pageSize, keyword } = params;
+    const skip = (page - 1) * pageSize;
+
+    const queryBuilder = this.circleRepository
+      .createQueryBuilder('circle')
+      .where('circle.isDeleted = false');
+
+    if (keyword) {
+      queryBuilder.andWhere(
+        '(circle.name LIKE :keyword OR circle.description LIKE :keyword)',
+        { keyword: `%${keyword}%` },
+      );
+    }
+
+    queryBuilder
+      .orderBy('circle.sortOrder', 'DESC')
+      .addOrderBy('circle.createdAt', 'DESC')
+      .skip(skip)
+      .take(pageSize);
+
+    const [list, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      list,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  /**
+   * 创建圈子（管理后台）
+   */
+  async createCircle(data: {
+    name: string;
+    description?: string;
+    coverUrl?: string;
+    sortOrder?: number;
+    isRecommend?: boolean;
+  }) {
+    const circle = this.circleRepository.create({
+      ...data,
+      memberCount: 0,
+      postCount: 0,
+    });
+    return this.circleRepository.save(circle);
+  }
+
+  /**
+   * 更新圈子（管理后台）
+   */
+  async updateCircle(id: number, data: {
+    name?: string;
+    description?: string;
+    coverUrl?: string;
+    sortOrder?: number;
+    isRecommend?: boolean;
+  }) {
+    await this.circleRepository.update(id, data);
+    return this.getCircleDetail(id);
+  }
+
+  /**
+   * 删除圈子（管理后台，软删除）
+   */
+  async deleteCircle(id: number) {
+    await this.circleRepository.update(id, { isDeleted: true });
+    return { success: true };
   }
 
   /**

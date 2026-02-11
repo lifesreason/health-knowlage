@@ -78,9 +78,9 @@ export class AuditController {
   async batchAudit(
     @Body('postIds') postIds: number[],
     @Body('action') action: 'approve' | 'reject',
-    @Body('rejectReason') rejectReason?: string,
     @Request() req,
+    @Body('rejectReason') rejectReason?: string,
   ) {
-    return this.auditService.batchAudit(postIds, action, rejectReason, req.user?.username || 'ADMIN');
+    return this.auditService.batchAudit(postIds, action, req.user?.username || 'ADMIN', rejectReason);
   }
 }

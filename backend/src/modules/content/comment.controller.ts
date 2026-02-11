@@ -5,15 +5,51 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @ApiTags('comment')
 @Controller('comment')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
 export class CommentController {
   constructor(private commentService: CommentService) {}
+
+  // ========== 管理后台接口 ==========
+
+  /**
+   * 获取评论列表（管理后台）
+   */
+  @Get('admin/list')
+  @ApiOperation({ summary: '获取评论列表（管理后台）' })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'pageSize', required: false })
+  @ApiQuery({ name: 'keyword', required: false })
+  @ApiQuery({ name: 'postId', required: false })
+  async getAdminCommentList(
+    @Query('page') page: string = '1',
+    @Query('pageSize') pageSize: string = '20',
+    @Query('keyword') keyword?: string,
+    @Query('postId') postId?: string,
+  ) {
+    return this.commentService.getAdminCommentList({
+      page: +page,
+      pageSize: +pageSize,
+      keyword,
+      postId: postId ? +postId : undefined,
+    });
+  }
+
+  /**
+   * 删除评论（管理后台）
+   */
+  @Delete('admin/:id')
+  @ApiOperation({ summary: '删除评论（管理后台）' })
+  async adminDeleteComment(@Param('id') id: string) {
+    return this.commentService.adminDeleteComment(+id);
+  }
+
+  // ========== 小程序接口 ==========
 
   /**
    * 创建评论
    */
   @Post()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '创建评论' })
   @ApiResponse({ status: 200, description: '创建成功' })
   async createComment(@Request() req, @Body() body: {
@@ -54,6 +90,8 @@ export class CommentController {
    * 删除评论
    */
   @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '删除评论' })
   @ApiResponse({ status: 200, description: '删除成功' })
   async deleteComment(@Param('id') id: string, @Request() req) {
@@ -64,6 +102,8 @@ export class CommentController {
    * 点赞评论
    */
   @Post(':id/like')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '点赞评论' })
   @ApiResponse({ status: 200, description: '点赞成功' })
   async likeComment(@Param('id') id: string, @Request() req) {
@@ -74,6 +114,8 @@ export class CommentController {
    * 取消点赞评论
    */
   @Delete(':id/like')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '取消点赞评论' })
   @ApiResponse({ status: 200, description: '取消点赞成功' })
   async unlikeComment(@Param('id') id: string, @Request() req) {

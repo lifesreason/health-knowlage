@@ -1,363 +1,512 @@
 <template>
-  <view class="me-container">
-    <!-- 用户信息头部 -->
-    <view class="user-header">
-      <image class="avatar" :src="userInfo?.avatarUrl || '/static/images/default-avatar.png'" mode="aspectFill"></image>
-      <view class="user-info">
-        <view class="nickname text-scale-lg">{{ userInfo?.nickname || '未登录' }}</view>
-        <view class="user-id text-scale-sm">ID: {{ userInfo?.id || '' }}</view>
-        <!-- 认证医师标签 -->
-        <view v-if="userInfo?.role === 1" class="doctor-badge">
-          <text class="badge-icon">✓</text>
-          <text class="text-scale-sm">认证医师</text>
+  <view class="me-page" :style="{ '--font-scale': fontScale }">
+    <!-- 顶部用户卡片 -->
+    <view class="profile-card">
+      <!-- 背景装饰 -->
+      <view class="card-bg"></view>
+      
+      <!-- 用户信息 -->
+      <view class="user-section">
+        <view class="avatar-wrapper" @click="goToSettings">
+          <image 
+            class="user-avatar" 
+            :src="userInfo?.avatarUrl || '/static/default-avatar.png'" 
+            mode="aspectFill"
+          ></image>
+          <view v-if="userStore.isDoctor" class="verified-badge">
+            <text>✓</text>
+          </view>
+        </view>
+        
+        <view class="user-info" @click="goToSettings">
+          <view class="name-row">
+            <text class="user-name" :style="{ fontSize: `calc(20px * ${fontScale})` }">
+              {{ userInfo?.nickname || '点击登录' }}
+            </text>
+            <view v-if="userStore.isDoctor" class="doctor-tag">
+              <text>认证医师</text>
+            </view>
+          </view>
+          <text class="user-bio" :style="{ fontSize: `calc(13px * ${fontScale})` }">
+            {{ userInfo ? (userInfo.bio || '这个人很懒，什么都没写~') : '登录后享受更多服务' }}
+          </text>
+        </view>
+        
+        <view class="edit-btn" @click="goToSettings">
+          <text>编辑</text>
         </view>
       </view>
-      <view class="settings-btn" @click="goToSettings">
-        <text class="settings-icon">⚙</text>
+
+      <!-- 数据统计 -->
+      <view class="stats-section">
+        <view class="stat-item" @click="goToStats('following')">
+          <text class="stat-value" :style="{ fontSize: `calc(22px * ${fontScale})` }">{{ stats.following }}</text>
+          <text class="stat-label" :style="{ fontSize: `calc(12px * ${fontScale})` }">关注</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item" @click="goToStats('followers')">
+          <text class="stat-value" :style="{ fontSize: `calc(22px * ${fontScale})` }">{{ stats.followers || 0 }}</text>
+          <text class="stat-label" :style="{ fontSize: `calc(12px * ${fontScale})` }">粉丝</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item" @click="goToStats('likes')">
+          <text class="stat-value" :style="{ fontSize: `calc(22px * ${fontScale})` }">{{ stats.likesReceived }}</text>
+          <text class="stat-label" :style="{ fontSize: `calc(12px * ${fontScale})` }">获赞</text>
+        </view>
       </view>
     </view>
 
-    <!-- 数据统计 -->
-    <view class="stats-bar">
-      <view class="stat-item">
-        <text class="stat-value text-scale-lg">{{ learnedCount || 0 }}</text>
-        <text class="stat-label text-scale-sm">已学习</text>
+    <!-- 快捷功能 -->
+    <view class="quick-section">
+      <view class="section-header">
+        <text class="section-title" :style="{ fontSize: `calc(16px * ${fontScale})` }">我的内容</text>
       </view>
-      <view class="stat-divider"></view>
-      <view class="stat-item">
-        <text class="stat-value text-scale-lg">{{ collectCount || 0 }}</text>
-        <text class="stat-label text-scale-sm">我的收藏</text>
-      </view>
-      <view class="stat-divider"></view>
-      <view class="stat-item">
-        <text class="stat-value text-scale-lg">{{ viewCount || 0 }}</text>
-        <text class="stat-label text-scale-sm">学习时长(分)</text>
+      <view class="quick-grid">
+        <view class="quick-item" @click="goToMyPosts">
+          <view class="quick-icon-wrapper" style="background: linear-gradient(135deg, #74b9ff, #0984e3)">
+            <text class="quick-icon">📝</text>
+          </view>
+          <text class="quick-text" :style="{ fontSize: `calc(13px * ${fontScale})` }">我的发布</text>
+        </view>
+        <view class="quick-item" @click="goToCollections">
+          <view class="quick-icon-wrapper" style="background: linear-gradient(135deg, #ffeaa7, #fdcb6e)">
+            <text class="quick-icon">⭐</text>
+          </view>
+          <text class="quick-text" :style="{ fontSize: `calc(13px * ${fontScale})` }">我的收藏</text>
+        </view>
+        <view class="quick-item" @click="goToHistory">
+          <view class="quick-icon-wrapper" style="background: linear-gradient(135deg, #a29bfe, #6c5ce7)">
+            <text class="quick-icon">📖</text>
+          </view>
+          <text class="quick-text" :style="{ fontSize: `calc(13px * ${fontScale})` }">浏览历史</text>
+        </view>
+        <view class="quick-item" @click="goToCircles">
+          <view class="quick-icon-wrapper" style="background: linear-gradient(135deg, #55efc4, #00b894)">
+            <text class="quick-icon">🏠</text>
+          </view>
+          <text class="quick-text" :style="{ fontSize: `calc(13px * ${fontScale})` }">我的圈子</text>
+        </view>
       </view>
     </view>
 
-    <!-- 功能列表 -->
-    <view class="function-list">
-      <view class="function-item" @click="goToMyLearning">
-        <view class="function-left">
-          <text class="function-icon">📚</text>
-          <text class="function-label text-scale">学习记录</text>
+    <!-- 设置列表 -->
+    <view class="settings-section">
+      <view class="settings-group">
+        <view class="settings-item" @click="goToFontSettings">
+          <view class="item-left">
+            <text class="item-icon">🔤</text>
+            <text class="item-text" :style="{ fontSize: `calc(15px * ${fontScale})` }">字体大小</text>
+          </view>
+          <view class="item-right">
+            <text class="item-value" :style="{ fontSize: `calc(14px * ${fontScale})` }">{{ currentScaleLabel }}</text>
+            <text class="item-arrow">›</text>
+          </view>
         </view>
-        <text class="arrow-icon">›</text>
-      </view>
-
-      <view class="function-item" @click="goToMyCollections">
-        <view class="function-left">
-          <text class="function-icon">⭐</text>
-          <text class="function-label text-scale">我的收藏</text>
+        
+        <view class="settings-item" @click="contactService">
+          <view class="item-left">
+            <text class="item-icon">💬</text>
+            <text class="item-text" :style="{ fontSize: `calc(15px * ${fontScale})` }">联系客服</text>
+          </view>
+          <view class="item-right">
+            <text class="item-arrow">›</text>
+          </view>
         </view>
-        <text class="arrow-icon">›</text>
-      </view>
-
-      <view class="function-item" @click="goToHistory">
-        <view class="function-left">
-          <text class="function-icon">🕒</text>
-          <text class="function-label text-scale">浏览历史</text>
+        
+        <view class="settings-item" @click="goToAbout">
+          <view class="item-left">
+            <text class="item-icon">ℹ️</text>
+            <text class="item-text" :style="{ fontSize: `calc(15px * ${fontScale})` }">关于我们</text>
+          </view>
+          <view class="item-right">
+            <text class="item-value" :style="{ fontSize: `calc(13px * ${fontScale})` }">v1.0.0</text>
+            <text class="item-arrow">›</text>
+          </view>
         </view>
-        <text class="arrow-icon">›</text>
-      </view>
-
-      <view class="function-item" @click="goToCertification" v-if="userInfo?.role !== 1">
-        <view class="function-left">
-          <text class="function-icon">🏅</text>
-          <text class="function-label text-scale">医师认证</text>
-        </view>
-        <text class="arrow-icon">›</text>
-      </view>
-
-      <view class="function-item" @click="contactService">
-        <view class="function-left">
-          <text class="function-icon">💬</text>
-          <text class="function-label text-scale">联系客服</text>
-        </view>
-        <text class="arrow-icon">›</text>
       </view>
     </view>
 
-    <!-- 登录提示 -->
-    <view v-if="!isLoggedIn" class="login-tip">
-      <text class="text-scale">登录后查看学习记录</text>
-      <button class="login-btn" @click="handleLogin">去登录</button>
+    <!-- 退出登录 -->
+    <view v-if="userStore.isLoggedIn" class="logout-section">
+      <view class="logout-btn" @click="handleLogout">
+        <text class="logout-text" :style="{ fontSize: `calc(15px * ${fontScale})` }">退出登录</text>
+      </view>
     </view>
+
+    <!-- 底部安全区 -->
+    <view class="safe-bottom"></view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
+import { useThemeStore } from '@/store/theme';
 import { useUserStore } from '@/store/user';
-import { getUserInfo } from '@/api/user';
+import { storeToRefs } from 'pinia';
+import { userApi } from '@/api';
 
+const themeStore = useThemeStore();
 const userStore = useUserStore();
+const { fontScale, currentScaleLabel } = storeToRefs(themeStore);
+const { userInfo, isLoggedIn } = storeToRefs(userStore);
 
-const userInfo = computed(() => userStore.userInfo);
-const isLoggedIn = computed(() => userStore.isLoggedIn());
+// 用户统计数据
+const stats = ref({
+  likesReceived: 0,
+  following: 0,
+  followers: 0,
+  circles: 0,
+});
 
-// 学习统计数据
-const learnedCount = ref(0);
-const collectCount = ref(0);
-const viewCount = ref(0);
+// 加载用户数据
+const loadUserStats = async () => {
+  if (!userStore.isLoggedIn) return;
 
-// 跳转设置
-const goToSettings = () => {
-  uni.navigateTo({
-    url: '/pages/settings/settings',
-  });
+  try {
+    const res = await userApi.getStats();
+    stats.value = {
+      likesReceived: res.likesReceived || 0,
+      following: res.following || 0,
+      followers: res.followers || 0,
+      circles: res.circles || 0,
+    };
+  } catch (error) {
+    console.error('加载用户统计失败', error);
+  }
 };
 
-// 跳转学习记录
-const goToMyLearning = () => {
-  if (!isLoggedIn.value) {
-    handleLogin();
-    return;
-  }
-  uni.navigateTo({
-    url: '/pages/my-learning/my-learning',
-  });
-};
-
-// 跳转我的收藏
-const goToMyCollections = () => {
-  if (!isLoggedIn.value) {
-    handleLogin();
-    return;
-  }
-  uni.navigateTo({
-    url: '/pages/collections/collections',
-  });
+// 跳转我的发布
+const goToMyPosts = () => {
+  if (!userStore.requireLogin()) return;
+  uni.navigateTo({ url: '/sub_pkg_B/settings/settings?tab=posts' });
 };
 
 // 跳转浏览历史
 const goToHistory = () => {
-  if (!isLoggedIn.value) {
-    handleLogin();
-    return;
-  }
-  uni.navigateTo({
-    url: '/pages/history/history',
-  });
+  uni.navigateTo({ url: '/sub_pkg_B/settings/settings?tab=history' });
 };
 
-// 跳转医师认证
-const goToCertification = () => {
-  if (!isLoggedIn.value) {
-    handleLogin();
-    return;
-  }
-  uni.navigateTo({
-    url: '/pages/certification/certification',
-  });
+// 跳转我的收藏
+const goToCollections = () => {
+  if (!userStore.requireLogin()) return;
+  uni.navigateTo({ url: '/sub_pkg_B/settings/settings?tab=collections' });
+};
+
+// 跳转我的圈子
+const goToCircles = () => {
+  if (!userStore.requireLogin()) return;
+  uni.navigateTo({ url: '/sub_pkg_B/settings/settings?tab=circles' });
+};
+
+// 跳转统计详情
+const goToStats = (type: string) => {
+  if (!userStore.requireLogin()) return;
+  uni.navigateTo({ url: `/sub_pkg_B/settings/settings?tab=${type}` });
 };
 
 // 联系客服
 const contactService = () => {
-  uni.openCustomerServiceChat({
-    extInfo: {
-      url: '',
-    },
-    corpId: '',
-    success: () => {
-      console.log('打开客服成功');
-    },
-    fail: (err) => {
-      console.error('打开客服失败', err);
-      uni.showToast({
-        title: '客服暂未配置',
-        icon: 'none',
-      });
-    },
-  });
+  // 使用微信客服
 };
 
-// 登录
-const handleLogin = () => {
-  uni.showToast({
-    title: '请先登录',
-    icon: 'none',
-  });
+// 跳转字体设置
+const goToFontSettings = () => {
+  uni.navigateTo({ url: '/sub_pkg_B/settings/settings?tab=font' });
 };
 
-// 加载用户信息
-const loadUserInfo = async () => {
-  if (!isLoggedIn.value) return;
-
-  try {
-    const info = await getUserInfo();
-    userStore.setUserInfo(info);
-
-    // 更新统计数据（使用已有数据或模拟）
-    learnedCount.value = info.learnedCount || 0;
-    collectCount.value = info.collectCount || 0;
-    viewCount.value = info.viewCount || 0;
-  } catch (error) {
-    console.error('加载用户信息失败', error);
+// 跳转设置
+const goToSettings = () => {
+  if (!userStore.isLoggedIn) {
+    uni.navigateTo({ url: '/sub_pkg_B/auth/auth' });
+    return;
   }
+  uni.navigateTo({ url: '/sub_pkg_B/settings/settings' });
+};
+
+// 跳转关于
+const goToAbout = () => {
+  uni.navigateTo({ url: '/sub_pkg_B/settings/settings?tab=about' });
+};
+
+// 退出登录
+const handleLogout = () => {
+  uni.showModal({
+    title: '提示',
+    content: '确定要退出登录吗？',
+    success: (res) => {
+      if (res.confirm) {
+        userStore.logout();
+        uni.showToast({ title: '已退出登录', icon: 'none' });
+      }
+    },
+  });
 };
 
 onMounted(() => {
-  loadUserInfo();
+  loadUserStats();
+});
+
+onShow(() => {
+  loadUserStats();
 });
 </script>
 
 <style lang="scss" scoped>
-.me-container {
+.me-page {
   min-height: 100vh;
-  background-color: var(--bg-color);
+  background: #f5f6f8;
 }
 
-.user-header {
-  background: linear-gradient(135deg, var(--primary-color) 0%, #A29BFE 100%);
-  padding: 60rpx 24rpx 40rpx;
+// 用户卡片
+.profile-card {
+  position: relative;
+  background: #fff;
+  margin: 24rpx;
+  border-radius: 32rpx;
+  overflow: hidden;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.06);
+}
+
+.card-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 200rpx;
+  background: linear-gradient(135deg, #E17055 0%, #d45d43 100%);
+}
+
+.user-section {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  padding: 32rpx;
+  padding-top: 120rpx;
+  gap: 20rpx;
+}
+
+.avatar-wrapper {
+  position: relative;
+}
+
+.user-avatar {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 50%;
+  border: 6rpx solid #fff;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.15);
+}
+
+.verified-badge {
+  position: absolute;
+  bottom: 4rpx;
+  right: 4rpx;
+  width: 36rpx;
+  height: 36rpx;
+  background: linear-gradient(135deg, #00b894, #00a085);
+  border-radius: 50%;
+  border: 4rpx solid #fff;
   display: flex;
   align-items: center;
-  gap: 24rpx;
-}
-
-.avatar {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 60rpx;
-  background-color: rgba(255, 255, 255, 0.3);
-  border: 4rpx solid rgba(255, 255, 255, 0.5);
+  justify-content: center;
+  font-size: 20rpx;
+  color: #fff;
 }
 
 .user-info {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
+  padding-bottom: 8rpx;
 }
 
-.nickname {
-  font-weight: bold;
-  color: #fff;
-}
-
-.user-id {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.doctor-badge {
+.name-row {
   display: flex;
   align-items: center;
-  gap: 8rpx;
-  background-color: rgba(255, 215, 0, 0.2);
-  padding: 4rpx 12rpx;
-  border-radius: 20rpx;
-  color: #FFD700;
-  width: fit-content;
+  gap: 12rpx;
+  margin-bottom: 8rpx;
 }
 
-.badge-icon {
-  color: #FFD700;
-  font-weight: bold;
+.user-name {
+  font-weight: 700;
+  color: #1a1a1a;
 }
 
-.settings-btn {
-  padding: 8rpx;
-}
-
-.settings-icon {
-  font-size: 32rpx;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.stats-bar {
-  background-color: #fff;
-  margin: -30rpx 24rpx 0;
-  padding: 40rpx 0;
-  display: flex;
-  align-items: center;
+.doctor-tag {
+  background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+  padding: 4rpx 16rpx;
   border-radius: 16rpx;
-  position: relative;
-  z-index: 10;
-  box-shadow: 0 4rpx 12rpx rgba(108, 92, 231, 0.1);
+  font-size: 20rpx;
+  color: #8b6914;
+  font-weight: 600;
+}
+
+.user-bio {
+  color: #999;
+  display: block;
+}
+
+.edit-btn {
+  background: #f5f5f5;
+  padding: 12rpx 28rpx;
+  border-radius: 28rpx;
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 8rpx;
+}
+
+// 统计数据
+.stats-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 32rpx;
+  border-top: 1rpx solid #f5f5f5;
 }
 
 .stat-item {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8rpx;
+  flex: 1;
 }
 
 .stat-value {
-  font-weight: bold;
-  color: var(--primary-color);
+  font-weight: 700;
+  color: #1a1a1a;
 }
 
 .stat-label {
-  color: var(--text-light);
+  color: #999;
 }
 
 .stat-divider {
   width: 1rpx;
-  height: 60rpx;
-  background-color: #eee;
+  height: 48rpx;
+  background: #eee;
 }
 
-.function-list {
-  background-color: #fff;
-  margin: 24rpx;
-  padding: 0 24rpx;
-  border-radius: 16rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+// 快捷功能
+.quick-section {
+  background: #fff;
+  margin: 0 24rpx 24rpx;
+  border-radius: 24rpx;
+  padding: 28rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
 }
 
-.function-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 32rpx 0;
-  border-bottom: 1rpx solid #f5f5f5;
+.section-header {
+  margin-bottom: 24rpx;
 }
 
-.function-item:last-child {
-  border-bottom: none;
+.section-title {
+  font-weight: 600;
+  color: #1a1a1a;
 }
 
-.function-left {
-  display: flex;
-  align-items: center;
-  gap: 24rpx;
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20rpx;
 }
 
-.function-icon {
-  font-size: 36rpx;
-}
-
-.function-label {
-  font-size: 32rpx;
-  color: var(--text-color);
-}
-
-.arrow-icon {
-  font-size: 40rpx;
-  color: var(--text-light);
-  font-weight: 300;
-}
-
-.login-tip {
-  background-color: #fff;
-  margin: 24rpx;
-  padding: 60rpx 24rpx;
+.quick-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24rpx;
-  border-radius: 16rpx;
+  gap: 12rpx;
 }
 
-.login-btn {
-  background-color: var(--primary-color);
-  color: #fff;
-  border: none;
-  padding: 20rpx 60rpx;
-  border-radius: 40rpx;
+.quick-icon-wrapper {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quick-icon {
+  font-size: 40rpx;
+}
+
+.quick-text {
+  color: #666;
+}
+
+// 设置列表
+.settings-section {
+  margin: 0 24rpx;
+}
+
+.settings-group {
+  background: #fff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
+}
+
+.settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32rpx 28rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.item-left {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.item-icon {
+  font-size: 40rpx;
+}
+
+.item-text {
+  color: #333;
+}
+
+.item-right {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.item-value {
+  color: #999;
+}
+
+.item-arrow {
   font-size: 32rpx;
+  color: #ccc;
+}
+
+// 退出登录
+.logout-section {
+  margin: 32rpx 24rpx;
+}
+
+.logout-btn {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  text-align: center;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
+}
+
+.logout-text {
+  color: #E17055;
+  font-weight: 500;
+}
+
+// 安全区
+.safe-bottom {
+  height: calc(120rpx + env(safe-area-inset-bottom));
 }
 </style>

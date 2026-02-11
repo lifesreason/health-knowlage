@@ -11,16 +11,36 @@
         router
       >
         <el-menu-item index="/dashboard">
-          <el-icon><HomeFilled /></el-icon>
+          <el-icon><Odometer /></el-icon>
           <span>首页</span>
-        </el-menu-item>
-        <el-menu-item index="/audit">
-          <el-icon><DocumentChecked /></el-icon>
-          <span>内容审核</span>
         </el-menu-item>
         <el-menu-item index="/user">
           <el-icon><User /></el-icon>
           <span>用户管理</span>
+        </el-menu-item>
+        <el-menu-item index="/circle">
+          <el-icon><Opportunity /></el-icon>
+          <span>圈子管理</span>
+        </el-menu-item>
+        <el-menu-item index="/content">
+          <el-icon><Document /></el-icon>
+          <span>内容管理</span>
+        </el-menu-item>
+        <el-menu-item index="/comment">
+          <el-icon><ChatDotRound /></el-icon>
+          <span>评论管理</span>
+        </el-menu-item>
+        <el-menu-item index="/audit">
+          <el-icon><Checked /></el-icon>
+          <span>内容审核</span>
+        </el-menu-item>
+        <el-menu-item index="/statistics">
+          <el-icon><DataLine /></el-icon>
+          <span>数据统计</span>
+        </el-menu-item>
+        <el-menu-item index="/settings">
+          <el-icon><Setting /></el-icon>
+          <span>系统设置</span>
         </el-menu-item>
       </el-menu>
     </el-aside>
@@ -34,7 +54,7 @@
             <span class="el-dropdown-link">
               <el-icon><User /></el-icon>
               <span>管理员</span>
-              <el-icon class="el-icon--right"><arrow-down /></el-icon>
+              <el-icon class="el-icon--right"><ArrowDown /></el-icon>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
@@ -54,7 +74,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { HomeFilled, DocumentChecked, User, ArrowDown } from '@element-plus/icons-vue';
+import { 
+  Odometer, User, Document, ChatDotRound, Checked, 
+  DataLine, Setting, Opportunity, ArrowDown 
+} from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 
 const route = useRoute();

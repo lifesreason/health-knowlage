@@ -1,59 +1,38 @@
+/**
+ * 圈子相关 API
+ */
 import http from '@/common/http';
 
-export interface CircleItem {
-  id: number;
-  name: string;
-  description: string;
-  coverUrl: string;
-  memberCount: number;
-  postCount: number;
-  sortOrder: number;
-  isRecommend: boolean;
-  createdAt: string;
-}
+export const circleApi = {
+  /** 获取圈子列表 */
+  getList(params?: { page?: number; pageSize?: number }) {
+    return http.get('/circle/list', { params });
+  },
 
-/**
- * 获取圈子列表
- */
-export const getCircleList = () => {
-  return http.get('/circle/list');
+  /** 获取圈子详情 */
+  getDetail(id: number) {
+    return http.get(`/circle/${id}`);
+  },
+
+  /** 获取圈子帖子列表 */
+  getPosts(id: number, params: { page: number; pageSize: number }) {
+    return http.get(`/circle/${id}/posts`, { params });
+  },
+
+  /** 加入圈子 */
+  join(id: number) {
+    return http.post(`/circle/${id}/join`);
+  },
+
+  /** 退出圈子 */
+  leave(id: number) {
+    return http.post(`/circle/${id}/leave`);
+  },
+
+  /** 获取我加入的圈子 */
+  getMyCircles() {
+    return http.get('/circle/my');
+  },
 };
 
-/**
- * 获取圈子详情
- */
-export const getCircleDetail = (id: number) => {
-  return http.get(`/circle/${id}`);
-};
-
-/**
- * 加入圈子
- */
-export const joinCircle = (circleId: number) => {
-  return http.post('/circle/join', { circleId });
-};
-
-/**
- * 退出圈子
- */
-export const leaveCircle = (circleId: number) => {
-  return http.post('/circle/leave', { circleId });
-};
-
-/**
- * 获取圈子帖子列表
- */
-export const getCirclePosts = (params: {
-  circleId: number;
-  page: number;
-  pageSize: number;
-}) => {
-  return http.get('/circle/posts', { params });
-};
-
-/**
- * 获取用户加入的圈子列表
- */
-export const getUserCircles = (userId: number) => {
-  return http.get('/circle/my-circles', { params: { userId } });
-};
+export default circleApi;

@@ -125,4 +125,62 @@ export class CommentService {
     // TODO: 实现取消点赞评论
     return { message: '取消点赞成功' };
   }
+
+  /**
+   * 获取评论列表（管理后台）
+   */
+  async getAdminCommentList(params: {
+    page: number;
+    pageSize: number;
+    keyword?: string;
+    postId?: number;
+  }) {
+    const { page, pageSize, keyword, postId } = params;
+    const skip = (page - 1) * pageSize;
+
+    const queryBuilder = this.commentRepository
+      .createQueryBuilder('comment')
+      .leftJoinAndSelect('comment.user', 'user')
+      .leftJoinAndSelect('comment.post', 'post')
+      .where('comment.isDeleted = false');
+
+    if (keyword) {
+      queryBuilder.andWhere('comment.content LIKE :keyword', { keyword: `%${keyword}%` });
+    }
+
+    if (postId) {
+      queryBuilder.andWhere('comment.postId = :postId', { postId });
+    }
+
+    queryBuilder
+      .orderBy('comment.createdAt', 'DESC')
+      .skip(skip)
+      .take(pageSize);
+
+    const [list, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      list,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  /**
+   * 删除评论（管理后台，不验证用户）
+   */
+  async adminDeleteComment(commentId: number) {
+    const comment = await this.commentRepository.findOne({
+      where: { id: commentId },
+    });
+
+    if (comment) {
+      await this.commentRepository.update(commentId, { isDeleted: true });
+      await this.postRepository.decrement({ id: comment.postId }, 'commentCount', 1);
+    }
+
+    return { success: true };
+  }
 }

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like } from 'typeorm';
 import { User } from '../../entities/user.entity';
 
 @Injectable()
@@ -61,5 +61,71 @@ export class UserService {
       followingCount: 0,
       joinedCircles: 0,
     };
+  }
+
+  /**
+   * 获取用户列表（管理后台）
+   */
+  async getUserList(params: {
+    page: number;
+    pageSize: number;
+    keyword?: string;
+  }) {
+    const { page, pageSize, keyword } = params;
+    const skip = (page - 1) * pageSize;
+
+    const queryBuilder = this.userRepository
+      .createQueryBuilder('user')
+      .where('user.isDeleted = false');
+
+    if (keyword) {
+      queryBuilder.andWhere(
+        '(user.nickname LIKE :keyword OR user.openid LIKE :keyword)',
+        { keyword: `%${keyword}%` },
+      );
+    }
+
+    queryBuilder
+      .orderBy('user.createdAt', 'DESC')
+      .skip(skip)
+      .take(pageSize);
+
+    const [list, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      list,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  /**
+   * 获取用户统计（管理后台）
+   */
+  async getAdminStats() {
+    const total = await this.userRepository.count({ where: { isDeleted: false } });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const todayNew = await this.userRepository
+      .createQueryBuilder('user')
+      .where('user.isDeleted = false')
+      .andWhere('user.createdAt >= :today', { today })
+      .getCount();
+
+    return {
+      total,
+      todayNew,
+    };
+  }
+
+  /**
+   * 删除用户（软删除）
+   */
+  async deleteUser(id: number) {
+    await this.userRepository.update(id, { isDeleted: true });
+    return { success: true };
   }
 }

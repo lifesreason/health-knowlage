@@ -11,6 +11,8 @@ import { AuditModule } from './modules/audit/audit.module';
 
 import { AllExceptionsFilter } from './common/filters/all-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -45,6 +47,11 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
     ContentModule,
     CommunityModule,
     AuditModule,
+    // 安全模块
+    ThrottlerModule.forRoot([{
+        ttl: 60000,
+        limit: 10,
+      }]),
   ],
   controllers: [],
   providers: [
@@ -57,6 +64,11 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
     {
       provide: APP_INTERCEPTOR,
       useClass: TransformInterceptor,
+    },
+    // 全局限流守卫
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })

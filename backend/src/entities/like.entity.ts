@@ -1,7 +1,7 @@
-import { Entity, Column, PrimaryGeneratedColumn, UniqueIndex } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm';
 
 @Entity('biz_like')
-@UniqueIndex(['userId', 'targetId', 'targetType'], 'uk_user_target')
+@Index('uk_user_target', ['userId', 'targetId', 'targetType'], { unique: true })
 export class Like {
   @PrimaryGeneratedColumn()
   id: number;

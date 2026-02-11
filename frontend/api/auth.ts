@@ -1,35 +1,33 @@
+/**
+ * 认证相关 API
+ */
 import http from '@/common/http';
 
-/**
- * 微信登录
- */
-export const wechatLogin = (code: string) => {
-  return http.post('/auth/login', { code });
+export const authApi = {
+  /** 微信登录 */
+  login(data: { code: string }) {
+    return http.post('/auth/login', data);
+  },
+
+  /** 绑定手机号（微信授权方式） */
+  bindPhone(data: { encryptedData: string; iv: string }) {
+    return http.post('/auth/bind', data);
+  },
+
+  /** 手动绑定手机号 */
+  bindPhoneManual(data: { phone: string; code: string }) {
+    return http.post('/auth/bind/phone', data);
+  },
+
+  /** 发送验证码 */
+  sendCode(data: { phone: string }) {
+    return http.post('/auth/send-code', data);
+  },
+
+  /** 退出登录 */
+  logout() {
+    return http.post('/auth/logout');
+  },
 };
 
-/**
- * 绑定手机号
- */
-export const bindMobile = (data: {
-  encryptedData: string;
-  iv: string;
-}) => {
-  return http.post('/auth/bind', data);
-};
-
-/**
- * 短信验证码登录
- */
-export const smsLogin = (data: {
-  mobile: string;
-  code: string;
-}) => {
-  return http.post('/auth/sms-login', data);
-};
-
-/**
- * 发送短信验证码
- */
-export const sendSmsCode = (mobile: string) => {
-  return http.post('/auth/send-sms', { mobile });
-};
+export default authApi;

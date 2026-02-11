@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -8,6 +9,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['log', 'error', 'warn', 'debug'],
   });
+
+  // 安全头部
+  app.use(helmet());
 
   // 全局前缀
   const apiPrefix = process.env.API_PREFIX || 'api/v1';
@@ -47,7 +51,7 @@ async function bootstrap() {
     .addTag('audit', '审核模块')
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup('api/v1/docs', app, document);
 
   const port = process.env.PORT || 3000;
   await app.listen(port);

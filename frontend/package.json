@@ -1,1 +1,24 @@
-{"name": "silverhealth-frontend", "version": "1.0.0", "description": "银龄健康社区小程序 - 前端", "main": "main.js", "dependencies": {"vue": "^3.4.21", "pinia": "^2.1.7", "luch-request": "^3.1.1"}}
+{
+  "name": "silverhealth-miniprogram",
+  "version": "1.0.0",
+  "description": "银龄健康社区小程序",
+  "main": "main.js",
+  "scripts": {
+    "dev:mp-weixin": "uni -p mp-weixin",
+    "build:mp-weixin": "uni build -p mp-weixin"
+  },
+  "dependencies": {
+    "vue": "^3.4.21",
+    "pinia": "^2.1.7",
+    "luch-request": "^3.1.1"
+  },
+  "devDependencies": {
+    "@dcloudio/uni-app": "3.0.0-4020420240722001",
+    "@dcloudio/uni-cli-shared": "3.0.0-4020420240722001",
+    "@dcloudio/uni-mp-weixin": "3.0.0-4020420240722001",
+    "@dcloudio/vite-plugin-uni": "3.0.0-4020420240722001",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.8",
+    "sass": "^1.75.0"
+  }
+}

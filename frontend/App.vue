@@ -1,9 +1,27 @@
+<template>
+  <view class="app-container" :style="{ '--font-scale': fontScale }">
+    <!-- 页面内容 -->
+  </view>
+</template>
+
 <script setup lang="ts">
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app';
+import { useThemeStore } from '@/store/theme';
+import { useUserStore } from '@/store/user';
+import { storeToRefs } from 'pinia';
+
+const themeStore = useThemeStore();
+const userStore = useUserStore();
+const { fontScale } = storeToRefs(themeStore);
 
 onLaunch(() => {
   console.log('App Launch');
-  // 初始化应用配置
+  
+  // 初始化主题设置
+  themeStore.initFontScale();
+  
+  // 尝试静默登录
+  userStore.silentLogin();
 });
 
 onShow(() => {
@@ -16,74 +34,130 @@ onHide(() => {
 </script>
 
 <style lang="scss">
+@import '@/styles/accessible.scss';
+
 /* 全局样式 */
-@import './styles/font-scale.scss';
-
 page {
-  background-color: var(--bg-color);
-  font-size: 28rpx;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', 'Microsoft YaHei', sans-serif;
+  font-size: calc(16px * var(--font-scale, 1));
   line-height: 1.6;
-}
-
-/* 适老化基础样式 */
-:root {
-  --font-scale: 1;
-}
-
-/* 文字大小随字体倍率变化 */
-.text-scale {
-  font-size: calc(28rpx * var(--font-scale));
-}
-
-.text-scale-sm {
-  font-size: calc(24rpx * var(--font-scale));
-}
-
-.text-scale-lg {
-  font-size: calc(32rpx * var(--font-scale));
-}
-
-.text-scale-xl {
-  font-size: calc(36rpx * var(--font-scale));
+  color: #1a1a1a;
+  background-color: #f5f6f8;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* 通用样式 */
-.container {
-  padding: 24rpx;
+.app-container {
+  min-height: 100vh;
 }
 
-.flex-center {
+/* 全局动画 */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* 文本缩放类 */
+.text-scale {
+  font-size: calc(16px * var(--font-scale, 1));
+}
+
+.text-scale-sm {
+  font-size: calc(14px * var(--font-scale, 1));
+}
+
+.text-scale-lg {
+  font-size: calc(18px * var(--font-scale, 1));
+}
+
+.text-scale-xl {
+  font-size: calc(20px * var(--font-scale, 1));
+}
+
+/* 点击热区 - 适老化 */
+.clickable {
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.flex-between {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+/* 通用卡片样式 */
+.card {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 28rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
 }
 
-.text-ellipsis {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* 通用按钮样式 */
+.btn-primary {
+  background: linear-gradient(135deg, #E17055, #d45d43);
+  color: #ffffff;
+  border: none;
+  border-radius: 40rpx;
+  font-weight: 600;
+  box-shadow: 0 8rpx 24rpx rgba(225, 112, 85, 0.3);
 }
 
-.text-ellipsis-2 {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.btn-outline {
+  background: transparent;
+  color: #E17055;
+  border: 2rpx solid #E17055;
+  border-radius: 40rpx;
 }
 
-/* 点击热区 */
-.clickable-area {
-  min-width: 88rpx;
-  min-height: 88rpx;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+/* 通用分隔线 */
+.divider {
+  height: 1rpx;
+  background: #f0f0f0;
+  margin: 20rpx 0;
+}
+
+/* 隐藏滚动条 */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* 安全区域底部 */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 图片懒加载过渡 */
+image {
+  transition: opacity 0.3s ease;
+}
+
+/* 全局 rich-text 样式 */
+.rich-content {
+  image, img {
+    max-width: 100% !important;
+    border-radius: 12rpx;
+    margin: 12rpx 0;
+  }
+  
+  p {
+    margin: 0 0 16rpx 0;
+    line-height: 1.8;
+  }
+  
+  h1, h2, h3 {
+    font-weight: 700;
+    margin: 24rpx 0 12rpx 0;
+    color: #1a1a1a;
+  }
 }
 </style>
