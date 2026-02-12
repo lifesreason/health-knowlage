@@ -1,7 +1,9 @@
-import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, BadRequestException, UnauthorizedException, InternalServerErrorException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { WechatService } from './wechat.service';
 import { JwtAuthService } from './jwt.service';
+import { AuthCacheService } from './auth-cache.service';
+import { SmsService } from './sms/sms.service';
 import {
   WechatLoginDto,
   BindMobileDto,
@@ -9,17 +11,17 @@ import {
   SendCodeDto,
   BindMobileManualDto,
   AdminLoginDto,
+  RefreshTokenDto,
 } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
-  private readonly sessionKeyStore = new Map<number, { sessionKey: string; expiresAt: number }>();
-  private readonly smsCodeStore = new Map<string, { code: string; expiresAt: number }>();
-
   constructor(
     private userService: UserService,
     private wechatService: WechatService,
     private jwtAuthService: JwtAuthService,
+    private authCacheService: AuthCacheService,
+    private smsService: SmsService,
   ) {}
 
   /**
@@ -50,10 +52,7 @@ export class AuthService {
     const tokens = await this.jwtAuthService.generateTokens(user.id);
 
     // 临时保存微信 session_key，用于后续绑定手机号
-    this.sessionKeyStore.set(user.id, {
-      sessionKey: wechatInfo.session_key,
-      expiresAt: Date.now() + 10 * 60 * 1000,
-    });
+    await this.authCacheService.setSessionKey(user.id, wechatInfo.session_key, 10 * 60);
 
     // 5. 判断是否需要绑定手机号
     const needBind = !user.mobileCipher;
@@ -107,44 +106,54 @@ export class AuthService {
   /**
    * 获取临时 sessionKey
    */
-  getSessionKey(userId: number): string | null {
-    const item = this.sessionKeyStore.get(userId);
-    if (!item) return null;
-    if (item.expiresAt < Date.now()) {
-      this.sessionKeyStore.delete(userId);
-      return null;
-    }
-    return item.sessionKey;
+  async getSessionKey(userId: number): Promise<string | null> {
+    return this.authCacheService.getSessionKey(userId);
   }
 
   /**
-   * 发送短信验证码（开发环境模拟）
+   * 发送短信验证码
    */
   async sendCode(dto: SendCodeDto) {
-    const code = '123456';
-    this.smsCodeStore.set(dto.phone, {
-      code,
-      expiresAt: Date.now() + 5 * 60 * 1000,
-    });
+    const dailyLimit = Number(process.env.SMS_DAILY_LIMIT || 10);
+    const dayCount = await this.authCacheService.incrementSmsDailyCount(dto.phone);
+    if (dayCount > dailyLimit) {
+      throw new BadRequestException(`今日验证码发送次数已达上限(${dailyLimit})`);
+    }
 
-    return {
+    const fixedCode = process.env.SMS_FIXED_CODE;
+    const code = fixedCode || Math.floor(100000 + Math.random() * 900000).toString();
+    await this.smsService.sendCode(dto.phone, code);
+    await this.authCacheService.setSmsCode(dto.phone, code, 5 * 60);
+
+    const result: {
+      success: boolean;
+      expiresIn: number;
+      debugCode?: string;
+    } = {
       success: true,
       expiresIn: 300,
     };
+
+    // 开发环境透传验证码，便于联调
+    if (process.env.NODE_ENV !== 'production') {
+      result.debugCode = code;
+    }
+
+    return result;
   }
 
   /**
    * 手动绑定手机号
    */
   async bindMobileManual(userId: number, dto: BindMobileManualDto): Promise<LoginResponseDto> {
-    const cached = this.smsCodeStore.get(dto.phone);
-    if (!cached || cached.expiresAt < Date.now() || cached.code !== dto.code) {
+    const cachedCode = await this.authCacheService.getSmsCode(dto.phone);
+    if (!cachedCode || cachedCode !== dto.code) {
       throw new BadRequestException('验证码错误或已过期');
     }
 
     const mobileCipher = this.encryptMobile(dto.phone);
     const user = await this.userService.bindMobile(userId, mobileCipher);
-    this.smsCodeStore.delete(dto.phone);
+    await this.authCacheService.deleteSmsCode(dto.phone);
 
     const tokens = await this.jwtAuthService.generateTokens(user.id);
     return {
@@ -199,11 +208,46 @@ export class AuthService {
   }
 
   /**
+   * 刷新访问令牌
+   */
+  async refreshToken(dto: RefreshTokenDto): Promise<LoginResponseDto> {
+    let payload: any;
+    try {
+      payload = await this.jwtAuthService.verifyRefreshToken(dto.refreshToken);
+    } catch {
+      throw new UnauthorizedException('refresh token 无效或已过期');
+    }
+
+    const user = await this.userService.findById(Number(payload?.sub));
+    if (!user || user.status !== 1) {
+      throw new UnauthorizedException('用户不存在或已被禁用');
+    }
+
+    const tokens = await this.jwtAuthService.generateTokens(user.id);
+    const needBind = !user.mobileCipher;
+
+    return {
+      ...tokens,
+      needBind,
+      userInfo: needBind ? undefined : {
+        id: user.id,
+        nickname: user.nickname,
+        avatarUrl: user.avatarUrl,
+        role: user.role,
+        fontScale: user.fontScale,
+      },
+    };
+  }
+
+  /**
    * 加密手机号 (AES-256-CBC)
    */
   private encryptMobile(mobile: string): string {
     const crypto = require('crypto-js');
     const secretKey = process.env.AES_SECRET_KEY;
+    if (!secretKey || secretKey.length < 16) {
+      throw new InternalServerErrorException('AES_SECRET_KEY 配置错误');
+    }
 
     const encrypted = crypto.AES.encrypt(mobile, crypto.enc.Utf8.parse(secretKey), {
       iv: crypto.enc.Utf8.parse(secretKey.substring(0, 16)),
@@ -220,6 +264,9 @@ export class AuthService {
   decryptMobile(mobileCipher: string): string {
     const crypto = require('crypto-js');
     const secretKey = process.env.AES_SECRET_KEY;
+    if (!secretKey || secretKey.length < 16) {
+      throw new InternalServerErrorException('AES_SECRET_KEY 配置错误');
+    }
 
     const decrypted = crypto.AES.decrypt(mobileCipher, crypto.enc.Utf8.parse(secretKey), {
       iv: crypto.enc.Utf8.parse(secretKey.substring(0, 16)),

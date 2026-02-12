@@ -6,4 +6,6 @@ export * from './post.entity';
 export * from './comment.entity';
 export * from './like.entity';
 export * from './collect.entity';
+export * from './follow.entity';
+export * from './history.entity';
 export * from './audit-log.entity';

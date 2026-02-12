@@ -80,6 +80,17 @@ CREATE TABLE IF NOT EXISTS `rel_user_circle` (
   KEY `idx_circle_user` (`circle_id`, `joined_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='圈子成员关系表';
 
+-- 2.3 用户-关注关系表 rel_user_follow
+CREATE TABLE IF NOT EXISTS `rel_user_follow` (
+  `id` BIGINT(20) NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT(20) NOT NULL COMMENT '关注人ID',
+  `follow_user_id` BIGINT(20) NOT NULL COMMENT '被关注人ID',
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_follow` (`user_id`, `follow_user_id`),
+  KEY `idx_follow_user` (`follow_user_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户关注关系表';
+
 -- ============================================
 -- 3. 内容生产域 (Content Domain)
 -- ============================================
@@ -94,6 +105,8 @@ CREATE TABLE IF NOT EXISTS `biz_post` (
   `content` TEXT COMMENT '正文或视频描述',
   `media_urls` JSON DEFAULT NULL COMMENT '媒体资源JSON array',
   `video_meta` JSON DEFAULT NULL COMMENT '视频元数据(时长/封面/大小)',
+  `lat` DECIMAL(10,6) DEFAULT NULL COMMENT '发布纬度',
+  `lng` DECIMAL(10,6) DEFAULT NULL COMMENT '发布经度',
   `view_count` INT(11) DEFAULT 0 COMMENT '浏览量',
   `like_count` INT(11) DEFAULT 0 COMMENT '点赞量',
   `comment_count` INT(11) DEFAULT 0 COMMENT '评论量',
@@ -105,7 +118,8 @@ CREATE TABLE IF NOT EXISTS `biz_post` (
   `is_deleted` TINYINT(1) DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `idx_user_posts` (`user_id`, `created_at`),
-  KEY `idx_feed_query` (`circle_id`, `audit_status`, `created_at`) COMMENT 'Feed流查询核心索引'
+  KEY `idx_feed_query` (`circle_id`, `audit_status`, `created_at`) COMMENT 'Feed流查询核心索引',
+  KEY `idx_location` (`lat`, `lng`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='帖子内容表';
 
 -- 3.2 评论表 biz_comment
@@ -163,6 +177,18 @@ CREATE TABLE IF NOT EXISTS `sys_audit_log` (
   PRIMARY KEY (`id`),
   KEY `idx_target` (`target_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='审核日志表';
+
+-- 4.4 浏览历史表 biz_user_history
+CREATE TABLE IF NOT EXISTS `biz_user_history` (
+  `id` BIGINT(20) NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT(20) NOT NULL,
+  `post_id` BIGINT(20) NOT NULL,
+  `last_viewed_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_post_history` (`user_id`, `post_id`),
+  KEY `idx_user_viewed` (`user_id`, `last_viewed_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户浏览历史表';
 
 -- ============================================
 -- 5. 初始化数据

@@ -42,6 +42,24 @@ export class AuditController {
   }
 
   /**
+   * 获取机审运行状态
+   */
+  @Get('machine/status')
+  @ApiOperation({ summary: '获取机审运行状态' })
+  async getMachineStatus() {
+    return this.auditService.getMachineStatus();
+  }
+
+  /**
+   * 手动触发一次机审消费
+   */
+  @Post('machine/run-once')
+  @ApiOperation({ summary: '手动触发一次机审消费' })
+  async runMachineReviewOnce() {
+    return this.auditService.runMachineReviewOnce();
+  }
+
+  /**
    * 获取审核历史
    */
   @Get('history/:postId')

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
 import { Circle } from '../../entities/circle.entity';
@@ -111,7 +111,7 @@ export class CircleService {
     });
 
     if (!circle) {
-      throw new Error('圈子不存在');
+      throw new NotFoundException('圈子不存在');
     }
 
     return circle;
@@ -134,7 +134,7 @@ export class CircleService {
     });
 
     if (!circle) {
-      throw new Error('圈子不存在');
+      throw new NotFoundException('圈子不存在');
     }
 
     const queryBuilder = this.postRepository
@@ -168,7 +168,7 @@ export class CircleService {
     });
 
     if (!circle) {
-      throw new Error('圈子不存在');
+      throw new NotFoundException('圈子不存在');
     }
 
     // 检查是否已加入
@@ -178,7 +178,7 @@ export class CircleService {
     );
 
     if (existing && existing.length > 0) {
-      throw new Error('已加入该圈子');
+      throw new BadRequestException('已加入该圈子');
     }
 
     // 加入圈子
@@ -203,7 +203,7 @@ export class CircleService {
     });
 
     if (!circle) {
-      throw new Error('圈子不存在');
+      throw new NotFoundException('圈子不存在');
     }
 
     // 检查是否已加入
@@ -213,7 +213,7 @@ export class CircleService {
     );
 
     if (!existing || existing.length === 0) {
-      throw new Error('未加入该圈子');
+      throw new BadRequestException('未加入该圈子');
     }
 
     // 退出圈子

@@ -93,14 +93,60 @@
         </el-card>
       </el-col>
     </el-row>
+
+    <el-row :gutter="20" style="margin-top: 20px">
+      <el-col :span="24">
+        <el-card>
+          <template #header>
+            <div class="card-header">
+              <span>推荐缓存命中监控</span>
+              <div class="cache-actions">
+                <el-select v-model="cacheWindowMinutes" size="small" style="width: 120px">
+                  <el-option :value="5" label="近5分钟" />
+                  <el-option :value="10" label="近10分钟" />
+                  <el-option :value="30" label="近30分钟" />
+                  <el-option :value="60" label="近60分钟" />
+                </el-select>
+                <el-button size="small" @click="loadCacheStats">刷新</el-button>
+              </div>
+            </div>
+          </template>
+
+          <el-row :gutter="16">
+            <el-col :span="4"><div class="cache-kpi">请求数: {{ cacheStats.total.requests }}</div></el-col>
+            <el-col :span="4"><div class="cache-kpi">命中率: {{ percent(cacheStats.total.hitRate) }}</div></el-col>
+            <el-col :span="4"><div class="cache-kpi">命中数: {{ cacheStats.total.hitCount }}</div></el-col>
+            <el-col :span="4"><div class="cache-kpi">未命中: {{ cacheStats.total.missCount }}</div></el-col>
+            <el-col :span="4"><div class="cache-kpi">Redis命中: {{ cacheStats.total.redisHits }}</div></el-col>
+            <el-col :span="4"><div class="cache-kpi">内存命中: {{ cacheStats.total.memoryHits }}</div></el-col>
+          </el-row>
+
+          <el-divider />
+
+          <el-table :data="cacheStats.window.series" size="small" stripe>
+            <el-table-column prop="minute" label="分钟(UTC)" min-width="170" />
+            <el-table-column prop="requests" label="请求" width="90" />
+            <el-table-column label="命中率" width="110">
+              <template #default="{ row }">
+                {{ percent(row.requests ? (row.redisHits + row.memoryHits) / row.requests : 0) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="redisHits" label="Redis命中" width="100" />
+            <el-table-column prop="memoryHits" label="内存命中" width="100" />
+            <el-table-column prop="misses" label="未命中" width="90" />
+            <el-table-column prop="setRequests" label="写入" width="90" />
+          </el-table>
+        </el-card>
+      </el-col>
+    </el-row>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { reactive, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import { User, Document, ChatDotRound, Clock, DocumentChecked } from '@element-plus/icons-vue';
 import { getAuditStats } from '@/api/audit';
-import { getOverviewStats } from '@/api/content';
+import { getFeedCacheStats, getOverviewStats } from '@/api/content';
 
 const stats = reactive({
   users: 0,
@@ -108,6 +154,29 @@ const stats = reactive({
   circles: 0,
   pending: 0,
 });
+
+const cacheWindowMinutes = ref(10);
+const cacheStats = reactive({
+  total: {
+    requests: 0,
+    hitRate: 0,
+    hitCount: 0,
+    missCount: 0,
+    redisHits: 0,
+    memoryHits: 0,
+  },
+  window: {
+    series: [] as Array<{
+      minute: string;
+      requests: number;
+      redisHits: number;
+      memoryHits: number;
+      misses: number;
+      setRequests: number;
+    }>,
+  },
+});
+let cacheTimer: number | null = null;
 
 // 加载统计数据
 const loadStats = async () => {
@@ -125,8 +194,34 @@ const loadStats = async () => {
   }
 };
 
+const loadCacheStats = async () => {
+  try {
+    const res = await getFeedCacheStats({ windowMinutes: cacheWindowMinutes.value });
+    cacheStats.total = res.total || cacheStats.total;
+    cacheStats.window = res.window || cacheStats.window;
+  } catch (error) {
+    console.error('加载缓存统计失败', error);
+  }
+};
+
+const percent = (value: number) => `${(value * 100).toFixed(1)}%`;
+
+watch(cacheWindowMinutes, () => {
+  loadCacheStats();
+});
+
 onMounted(() => {
   loadStats();
+  loadCacheStats();
+  cacheTimer = window.setInterval(() => {
+    loadCacheStats();
+  }, 15000);
+});
+
+onBeforeUnmount(() => {
+  if (cacheTimer !== null) {
+    window.clearInterval(cacheTimer);
+  }
 });
 </script>
 
@@ -190,6 +285,27 @@ onMounted(() => {
       height: 60px;
       font-size: 16px;
     }
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .cache-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .cache-kpi {
+    padding: 8px 10px;
+    background: #f8f9fb;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #303133;
   }
 }
 </style>

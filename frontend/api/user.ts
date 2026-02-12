@@ -33,6 +33,11 @@ export const userApi = {
   getHistory(params: { page: number; pageSize: number }) {
     return http.get('/user/history', { params });
   },
+
+  /** 记录浏览历史 */
+  recordHistory(data: { postId: number }) {
+    return http.post('/user/history', data);
+  },
 };
 
 export default userApi;

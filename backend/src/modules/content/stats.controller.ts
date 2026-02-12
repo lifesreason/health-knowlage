@@ -9,6 +9,7 @@ import { Circle } from '../../entities/circle.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { FeedCacheService } from './feed-cache.service';
 
 @ApiTags('stats')
 @Controller('stats')
@@ -25,6 +26,7 @@ export class StatsController {
     private commentRepository: Repository<Comment>,
     @InjectRepository(Circle)
     private circleRepository: Repository<Circle>,
+    private readonly feedCacheService: FeedCacheService,
   ) {}
 
   /**
@@ -113,5 +115,19 @@ export class StatsController {
     }
 
     return trends;
+  }
+
+  /**
+   * 获取推荐缓存命中统计
+   */
+  @Get('feed-cache')
+  @ApiOperation({ summary: '获取推荐缓存命中统计' })
+  @ApiQuery({ name: 'windowMinutes', required: false, description: '分钟窗口(1-180)，默认10' })
+  async getFeedCacheStats(@Query('windowMinutes') windowMinutes?: string) {
+    const parsedWindow = windowMinutes ? Number(windowMinutes) : 10;
+    return {
+      total: this.feedCacheService.getRecommendStats(),
+      window: this.feedCacheService.getRecommendWindowStats(parsedWindow),
+    };
   }
 }

@@ -122,9 +122,7 @@ const { fontScale } = storeToRefs(themeStore);
 const tabs = [
   { key: 'recommend', label: '推荐' },
   { key: 'follow', label: '关注' },
-  { key: 'health', label: '养生' },
-  { key: 'exercise', label: '运动' },
-  { key: 'food', label: '饮食' },
+  { key: 'nearby', label: '附近' },
 ];
 
 const currentTab = ref('recommend');
@@ -134,6 +132,24 @@ const refreshing = ref(false);
 const noMore = ref(false);
 const page = ref(1);
 const pageSize = 10;
+const userLocation = ref<{ lat: number; lng: number } | null>(null);
+
+const resolveUserLocation = async () => {
+  if (userLocation.value) return userLocation.value;
+
+  const location = await new Promise<{ lat: number; lng: number } | null>((resolve) => {
+    uni.getLocation({
+      type: 'gcj02',
+      success: (res) => {
+        resolve({ lat: res.latitude, lng: res.longitude });
+      },
+      fail: () => resolve(null),
+    });
+  });
+
+  userLocation.value = location;
+  return location;
+};
 
 // 切换Tab
 const switchTab = (key: string) => {
@@ -147,14 +163,36 @@ const switchTab = (key: string) => {
 // 加载列表
 const loadFeed = async (refresh = false) => {
   if (loading.value) return;
+  if (currentTab.value === 'follow' && !userStore.token) {
+    feedList.value = [];
+    noMore.value = true;
+    uni.showToast({ title: '请先登录查看关注内容', icon: 'none' });
+    return;
+  }
   loading.value = true;
 
   try {
-    const res = await feedApi.getList({
-      page: page.value,
-      pageSize,
-      type: currentTab.value,
-    });
+    let res: any;
+    if (currentTab.value === 'follow') {
+      res = await feedApi.getFollowingList({
+        page: page.value,
+        pageSize,
+      });
+    } else if (currentTab.value === 'nearby') {
+      const location = await resolveUserLocation();
+      res = await feedApi.getNearbyList({
+        lat: location?.lat || 0,
+        lng: location?.lng || 0,
+        page: page.value,
+        pageSize,
+      });
+    } else {
+      res = await feedApi.getList({
+        page: page.value,
+        pageSize,
+        type: currentTab.value,
+      });
+    }
 
     if (refresh) {
       feedList.value = res.list || [];

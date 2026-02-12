@@ -54,6 +54,13 @@ export class AdminLoginDto {
   password: string;
 }
 
+export class RefreshTokenDto {
+  @ApiProperty({ description: '刷新令牌' })
+  @IsNotEmpty()
+  @IsString()
+  refreshToken: string;
+}
+
 export class LoginResponseDto {
   @ApiProperty({ description: '访问令牌' })
   accessToken: string;

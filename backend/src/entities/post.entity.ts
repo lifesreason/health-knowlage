@@ -35,6 +35,12 @@ export class Post extends BaseEntity {
     size: number;
   };
 
+  @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true, name: 'lat' })
+  lat: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true, name: 'lng' })
+  lng: number;
+
   @Column({ type: 'int', default: 0, name: 'view_count' })
   viewCount: number;
 

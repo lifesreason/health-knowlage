@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Comment } from '../../entities/comment.entity';
@@ -31,7 +31,7 @@ export class CommentService {
     });
 
     if (!post) {
-      throw new Error('帖子不存在');
+      throw new NotFoundException('帖子不存在');
     }
 
     const comment = this.commentRepository.create({
@@ -102,7 +102,7 @@ export class CommentService {
     });
 
     if (!comment) {
-      throw new Error('评论不存在或无权删除');
+      throw new NotFoundException('评论不存在或无权删除');
     }
 
     await this.commentRepository.update(commentId, { isDeleted: true });
@@ -121,14 +121,14 @@ export class CommentService {
       where: { id: commentId, isDeleted: false, auditStatus: 1 },
     });
     if (!comment) {
-      throw new Error('评论不存在');
+      throw new NotFoundException('评论不存在');
     }
 
     const existing = await this.likeRepository.findOne({
       where: { userId, targetId: commentId, targetType: 2 },
     });
     if (existing) {
-      throw new Error('已经点赞过了');
+      throw new BadRequestException('已经点赞过了');
     }
 
     await this.likeRepository.save({
@@ -148,7 +148,7 @@ export class CommentService {
       where: { userId, targetId: commentId, targetType: 2 },
     });
     if (!like) {
-      throw new Error('未点赞');
+      throw new BadRequestException('未点赞');
     }
 
     await this.likeRepository.remove(like);

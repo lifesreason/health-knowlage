@@ -1,9 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Post } from '../../entities/post.entity';
 import { Circle } from '../../entities/circle.entity';
 import { User } from '../../entities/user.entity';
+import { Follow } from '../../entities/follow.entity';
+import { AuditQueueService } from '../audit/audit-queue.service';
+import { FeedCacheService } from './feed-cache.service';
 
 @Injectable()
 export class PostService {
@@ -14,6 +17,10 @@ export class PostService {
     private circleRepository: Repository<Circle>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Follow)
+    private followRepository: Repository<Follow>,
+    private auditQueueService: AuditQueueService,
+    private feedCacheService: FeedCacheService,
   ) {}
 
   /**
@@ -26,6 +33,8 @@ export class PostService {
     content: string;
     mediaUrls: string[];
     videoMeta?: any;
+    lat?: number;
+    lng?: number;
   }): Promise<Post> {
     // 验证圈子是否存在
     const circle = await this.circleRepository.findOne({
@@ -33,7 +42,7 @@ export class PostService {
     });
 
     if (!circle) {
-      throw new Error('圈子不存在');
+      throw new NotFoundException('圈子不存在');
     }
 
     const post = this.postRepository.create({
@@ -46,7 +55,12 @@ export class PostService {
       auditStatus: 0, // 审核中
     });
 
-    return this.postRepository.save(post);
+    const saved = await this.postRepository.save(post);
+    if (saved.auditStatus === 0) {
+      await this.auditQueueService.enqueuePost(saved.id).catch(() => undefined);
+    }
+
+    return saved;
   }
 
   /**
@@ -59,7 +73,7 @@ export class PostService {
     });
 
     if (!post) {
-      throw new Error('帖子不存在');
+      throw new NotFoundException('帖子不存在');
     }
 
     // 增加浏览量
@@ -76,9 +90,18 @@ export class PostService {
     page: number;
     pageSize: number;
     userId?: number;
+    lat?: number;
+    lng?: number;
   }) {
-    const { type, page, pageSize, userId } = params;
+    const { type, page, pageSize, userId, lat, lng } = params;
     const skip = (page - 1) * pageSize;
+
+    if (type === 'recommend' && page <= 5) {
+      const cached = await this.feedCacheService.getRecommend(page, pageSize);
+      if (cached) {
+        return cached;
+      }
+    }
 
     // 构建查询条件
     const queryBuilder = this.postRepository
@@ -91,20 +114,86 @@ export class PostService {
       .skip(skip)
       .take(pageSize);
 
-    // TODO: 根据 type 添加不同的查询逻辑
-    // recommend: 推荐算法
-    // nearby: 附近
-    // follow: 关注
+    if (type === 'recommend') {
+      // 推荐流：按互动热度 + 发布时间综合排序
+      queryBuilder
+        .addSelect(
+          '(UNIX_TIMESTAMP(post.created_at) * 0.3 + (post.view_count + post.like_count * 5 + post.comment_count * 10) * 0.7)',
+          'recommendScore',
+        )
+        .orderBy('recommendScore', 'DESC')
+        .addOrderBy('post.createdAt', 'DESC');
+    } else if (type === 'nearby') {
+      const hasLocation =
+        typeof lat === 'number' &&
+        !Number.isNaN(lat) &&
+        typeof lng === 'number' &&
+        !Number.isNaN(lng);
+
+      if (hasLocation) {
+        // 用简化距离计算进行排序（平方距离）
+        queryBuilder
+          .andWhere('post.lat IS NOT NULL')
+          .andWhere('post.lng IS NOT NULL')
+          .addSelect('POW(post.lat - :lat, 2) + POW(post.lng - :lng, 2)', 'distanceScore')
+          .setParameters({ lat, lng })
+          .orderBy('distanceScore', 'ASC')
+          .addOrderBy('post.createdAt', 'DESC');
+      } else {
+        queryBuilder
+          .orderBy('post.createdAt', 'DESC')
+          .addOrderBy('post.likeCount', 'DESC')
+          .addOrderBy('post.commentCount', 'DESC');
+      }
+    } else if (type === 'follow') {
+      if (!userId) {
+        return {
+          list: [],
+          total: 0,
+          page,
+          pageSize,
+          totalPages: 0,
+        };
+      }
+
+      const followUserRows = await this.followRepository.find({
+        where: { userId },
+        select: ['followUserId'],
+      });
+      const followUserIds = followUserRows.map((item) => item.followUserId);
+
+      if (!followUserIds.length) {
+        return {
+          list: [],
+          total: 0,
+          page,
+          pageSize,
+          totalPages: 0,
+        };
+      }
+
+      queryBuilder
+        .andWhere('post.userId IN (:...followUserIds)', { followUserIds })
+        .orderBy('post.createdAt', 'DESC');
+    } else {
+      queryBuilder.orderBy('post.createdAt', 'DESC');
+    }
 
     const [list, total] = await queryBuilder.getManyAndCount();
 
-    return {
+    const result = {
       list,
       total,
       page,
       pageSize,
       totalPages: Math.ceil(total / pageSize),
     };
+
+    if (type === 'recommend' && page <= 5) {
+      await this.feedCacheService.setRecommend(page, pageSize, result).catch(() => undefined);
+    }
+
+    return result;
   }
 
   /**
@@ -225,7 +314,7 @@ export class PostService {
     });
 
     if (!post) {
-      throw new Error('帖子不存在或无权删除');
+      throw new NotFoundException('帖子不存在或无权删除');
     }
 
     await this.postRepository.update(postId, { isDeleted: true });
@@ -299,6 +388,8 @@ export class PostService {
     content: string;
     coverUrl?: string;
     mediaUrls?: string[];
+    lat?: number;
+    lng?: number;
   }) {
     // 验证圈子是否存在
     const circle = await this.circleRepository.findOne({
@@ -306,7 +397,7 @@ export class PostService {
     });
 
     if (!circle) {
-      throw new Error('圈子不存在');
+      throw new NotFoundException('圈子不存在');
     }
 
     // 获取或创建系统管理员用户
@@ -334,6 +425,8 @@ export class PostService {
       content: data.content,
       coverUrl: data.coverUrl || null,
       mediaUrls: data.mediaUrls || [],
+      lat: data.lat,
+      lng: data.lng,
       viewCount: 0,
       likeCount: 0,
       commentCount: 0,

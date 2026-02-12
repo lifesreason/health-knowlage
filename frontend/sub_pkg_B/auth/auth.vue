@@ -115,8 +115,14 @@ let timer: ReturnType<typeof setInterval> | null = null;
 const handleWxLogin = async () => {
   try {
     uni.showLoading({ title: '登录中...' });
-    const [err, res] = await uni.login({ provider: 'weixin' });
-    if (err || !res?.code) {
+    const res = await new Promise<UniApp.LoginRes>((resolve, reject) => {
+      uni.login({
+        provider: 'weixin',
+        success: resolve,
+        fail: reject,
+      });
+    });
+    if (!res?.code) {
       uni.showToast({ title: '登录失败', icon: 'none' });
       return;
     }

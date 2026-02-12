@@ -1,6 +1,7 @@
-import { Controller, Get, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Query, UseGuards, Request } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { PostService } from './post.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @ApiTags('feed')
 @Controller('feed')
@@ -49,25 +50,37 @@ export class FeedController {
   @ApiQuery({ name: 'page', required: false, description: '页码' })
   @ApiQuery({ name: 'pageSize', required: false, description: '每页数量' })
   async getNearbyList(
-    @Query('lat') lat: number,
-    @Query('lng') lng: number,
-    @Query('page') page: number = 1,
-    @Query('pageSize') pageSize: number = 10,
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+    @Query('page') page: string = '1',
+    @Query('pageSize') pageSize: string = '10',
   ) {
-    return this.postService.getFeedList({ type: 'nearby', page, pageSize });
+    const parsedLat = lat !== undefined ? Number(lat) : undefined;
+    const parsedLng = lng !== undefined ? Number(lng) : undefined;
+    return this.postService.getFeedList({
+      type: 'nearby',
+      page: Number(page),
+      pageSize: Number(pageSize),
+      lat: Number.isNaN(parsedLat as number) ? undefined : parsedLat,
+      lng: Number.isNaN(parsedLng as number) ? undefined : parsedLng,
+    });
   }
 
   /**
    * 获取关注用户内容
    */
   @Get('following')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '获取关注用户内容' })
+  @ApiResponse({ status: 401, description: '未登录' })
   @ApiQuery({ name: 'page', required: false, description: '页码' })
   @ApiQuery({ name: 'pageSize', required: false, description: '每页数量' })
   async getFollowingList(
+    @Request() req,
     @Query('page') page: number = 1,
     @Query('pageSize') pageSize: number = 10,
   ) {
-    return this.postService.getFeedList({ type: 'follow', page, pageSize });
+    return this.postService.getFeedList({ type: 'follow', page, pageSize, userId: req.user.id });
   }
 }

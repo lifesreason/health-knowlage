@@ -76,7 +76,7 @@
                 <text class="author-name" :style="{ fontSize: `calc(14px * ${fontScale})` }">
                   {{ item.author?.nickname || item.user?.nickname || '系统' }}
                 </text>
-                <view class="follow-tag" v-if="!item.author?.isFollowed">
+                <view class="follow-tag" v-if="!item.isFollowed" @click.stop="handleFollow(item)">
                   <text>+ 关注</text>
                 </view>
               </view>
@@ -96,7 +96,7 @@
                 :src="item.author?.avatar || item.user?.avatarUrl || '/static/default-avatar.png'" 
                 mode="aspectFill"
               ></image>
-              <view class="follow-btn" v-if="!item.author?.isFollowed">
+              <view class="follow-btn" v-if="!item.isFollowed" @click.stop="handleFollow(item)">
                 <text class="plus-icon">+</text>
               </view>
             </view>
@@ -126,6 +126,12 @@
               </button>
               <text class="sidebar-count" :style="{ fontSize: `calc(12px * ${fontScale})` }">分享</text>
             </view>
+            <view class="sidebar-item" @click="handlePoster(item)">
+              <view class="icon-wrapper">
+                <text class="sidebar-icon">🖼</text>
+              </view>
+              <text class="sidebar-count" :style="{ fontSize: `calc(12px * ${fontScale})` }">海报</text>
+            </view>
           </view>
         </swiper-item>
       </swiper>
@@ -140,6 +146,7 @@
       :post-id="currentVideo?.id"
       @close="showComments = false"
     />
+    <canvas canvas-id="videoPosterCanvas" class="poster-canvas"></canvas>
   </view>
 </template>
 
@@ -150,8 +157,9 @@ import { useThemeStore } from '@/store/theme';
 import { useUserStore } from '@/store/user';
 import { storeToRefs } from 'pinia';
 import { formatNumber } from '@/common/utils';
+import { buildSharePoster, previewOrSavePoster } from '@/common/poster';
 import CommentModal from '@/components/CommentModal.vue';
-import { feedApi, interactionApi } from '@/api';
+import { feedApi, interactionApi, userApi } from '@/api';
 
 const themeStore = useThemeStore();
 const userStore = useUserStore();
@@ -164,8 +172,48 @@ const pausedVideos = ref<Record<number, boolean>>({});
 const showLikeAnimation = ref(false);
 const showComments = ref(false);
 const loading = ref(true);
+const MOBILE_DATA_PLAY_CONFIRM_KEY = 'video_mobile_data_play_allowed';
+const posterLoading = ref(false);
+const API_BASE_URL = 'http://localhost:3000/api/v1';
 
 const currentVideo = computed(() => videoList.value[currentIndex.value]);
+
+const getAuthor = (item: any) => item.author || item.user || {};
+
+const ensureNetworkAllowed = async () => {
+  const networkType = await new Promise<string>((resolve) => {
+    uni.getNetworkType({
+      success: (res) => resolve(res.networkType || 'unknown'),
+      fail: () => resolve('unknown'),
+    });
+  });
+
+  if (networkType === 'wifi' || networkType === 'unknown') {
+    return true;
+  }
+
+  if (uni.getStorageSync(MOBILE_DATA_PLAY_CONFIRM_KEY)) {
+    return true;
+  }
+
+  return new Promise<boolean>((resolve) => {
+    uni.showModal({
+      title: '流量播放提醒',
+      content: '当前不是 Wi-Fi 环境，继续播放视频可能消耗较多流量，是否继续？',
+      confirmText: '继续播放',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          uni.setStorageSync(MOBILE_DATA_PLAY_CONFIRM_KEY, true);
+          resolve(true);
+          return;
+        }
+        resolve(false);
+      },
+      fail: () => resolve(false),
+    });
+  });
+};
 
 // Get status bar height
 try {
@@ -176,8 +224,21 @@ try {
 const loadVideos = async () => {
   loading.value = true;
   try {
+    const canPlay = await ensureNetworkAllowed();
+    if (!canPlay) {
+      videoList.value = [];
+      return;
+    }
+
     const res = await feedApi.getVideoList({ page: 1, pageSize: 10 });
-    videoList.value = res.list || [];
+    videoList.value = (res.list || []).map((item: any) => ({
+      ...item,
+      author: item.author || item.user,
+      isFollowed: !!item.author?.isFollowed || !!item.user?.isFollowed,
+    }));
+    if (userStore.isLoggedIn && videoList.value[0]?.id) {
+      userApi.recordHistory({ postId: videoList.value[0].id }).catch(() => {});
+    }
   } catch (error) {
     console.error('加载视频失败', error);
     uni.showToast({ title: '加载失败', icon: 'none' });
@@ -198,6 +259,9 @@ const onSwiperChange = (e: any) => {
   currentIndex.value = newIndex;
   const newVideoContext = uni.createVideoContext(`video-${videoList.value[newIndex]?.id}`);
   newVideoContext?.play();
+  if (userStore.isLoggedIn && videoList.value[newIndex]?.id) {
+    userApi.recordHistory({ postId: videoList.value[newIndex].id }).catch(() => {});
+  }
 };
 
 const togglePlay = (index: number) => {
@@ -258,6 +322,46 @@ const openComments = (_item: any) => { showComments.value = true; };
 const goToProfile = (author: any) => {
   if (!author?.id) return;
   uni.navigateTo({ url: `/pages/detail/detail?userId=${author.id}` });
+};
+
+const handleFollow = async (item: any) => {
+  if (!userStore.requireLogin()) return;
+  const author = getAuthor(item);
+  if (!author?.id) return;
+  const prev = !!item.isFollowed;
+  item.isFollowed = !prev;
+  try {
+    const res = await interactionApi.follow({ userId: author.id });
+    item.isFollowed = !!res.followed;
+  } catch {
+    item.isFollowed = prev;
+    uni.showToast({ title: '操作失败', icon: 'none' });
+  }
+};
+
+const handlePoster = async (item: any) => {
+  if (posterLoading.value) return;
+  const author = getAuthor(item);
+  posterLoading.value = true;
+  uni.showLoading({ title: '生成海报中...' });
+  try {
+    const qrcodeUrl =
+      `${API_BASE_URL}/share/wxacode?scene=${encodeURIComponent(`id=${item?.id || ''}`)}` +
+      `&page=${encodeURIComponent('pages/video/video')}&width=280`;
+    const poster = await buildSharePoster({
+      canvasId: 'videoPosterCanvas',
+      title: item?.title || '健康视频分享',
+      subtitle: author?.nickname ? `作者：${author.nickname}` : '银龄健康社区',
+      imageUrl: item?.coverUrl || item?.videoMeta?.coverUrl,
+      qrcodeUrl,
+    });
+    await previewOrSavePoster(poster);
+  } catch {
+    uni.showToast({ title: '海报生成失败', icon: 'none' });
+  } finally {
+    uni.hideLoading();
+    posterLoading.value = false;
+  }
 };
 
 onShareAppMessage(() => {
@@ -497,5 +601,13 @@ onHide(() => {
 .share-btn {
   background: transparent; padding: 0; margin: 0; line-height: 1;
   &::after { display: none; }
+}
+
+.poster-canvas {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  width: 540px;
+  height: 960px;
 }
 </style>

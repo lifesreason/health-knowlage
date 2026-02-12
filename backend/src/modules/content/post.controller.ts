@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Query, Param, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { PostService } from './post.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -65,6 +66,8 @@ export class PostController {
     content: string;
     coverUrl?: string;
     mediaUrls?: string[];
+    lat?: number;
+    lng?: number;
   }) {
     return this.postService.adminCreatePost(body);
   }
@@ -76,6 +79,7 @@ export class PostController {
    */
   @Post('publish')
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 1, ttl: 60000 } })
   @ApiBearerAuth()
   @ApiOperation({ summary: '发布内容' })
   @ApiResponse({ status: 200, description: '发布成功' })
@@ -86,6 +90,8 @@ export class PostController {
     content: string;
     mediaUrls: string[];
     videoMeta?: any;
+    lat?: number;
+    lng?: number;
   }) {
     const post = await this.postService.createPost(req.user.id, body);
     return {

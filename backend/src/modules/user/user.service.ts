@@ -1,13 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../../entities/user.entity';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Collect } from '../../entities/collect.entity';
 import { Post } from '../../entities/post.entity';
+import { Follow } from '../../entities/follow.entity';
+import { History } from '../../entities/history.entity';
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -15,6 +19,10 @@ export class UserService {
     private collectRepository: Repository<Collect>,
     @InjectRepository(Post)
     private postRepository: Repository<Post>,
+    @InjectRepository(Follow)
+    private followRepository: Repository<Follow>,
+    @InjectRepository(History)
+    private historyRepository: Repository<History>,
   ) {}
 
   /**
@@ -84,11 +92,22 @@ export class UserService {
       .andWhere('post.is_deleted = 0')
       .getRawOne<{ likes: string; collects: string }>();
 
-    const joinedCirclesResult = await this.userRepository.query(
-      `SELECT COUNT(1) as cnt FROM rel_user_circle WHERE user_id = ?`,
-      [userId],
-    );
-    const joinedCircles = Number(joinedCirclesResult?.[0]?.cnt || 0);
+    let joinedCircles = 0;
+    try {
+      const joinedCirclesResult = await this.userRepository.query(
+        `SELECT COUNT(1) as cnt FROM rel_user_circle WHERE user_id = ?`,
+        [userId],
+      );
+      joinedCircles = Number(joinedCirclesResult?.[0]?.cnt || 0);
+    } catch (error) {
+      if (this.isMissingTableError(error, 'rel_user_circle')) {
+        this.logger.warn('Table rel_user_circle is missing, joinedCircles fallback to 0');
+      } else {
+        throw error;
+      }
+    }
+    const followingCount = await this.followRepository.count({ where: { userId } });
+    const followersCount = await this.followRepository.count({ where: { followUserId: userId } });
 
     const receivedLikes = Number(postStat?.likes || 0);
     const receivedCollects = Number(postStat?.collects || 0);
@@ -97,12 +116,18 @@ export class UserService {
       receivedLikesAndCollects: receivedLikes + receivedCollects,
       likesReceived: receivedLikes,
       collectsReceived: receivedCollects,
-      followingCount: 0,
-      following: 0,
-      followers: 0,
+      followingCount,
+      following: followingCount,
+      followers: followersCount,
       joinedCircles,
       circles: joinedCircles,
     };
+  }
+
+  private isMissingTableError(error: any, tableName: string) {
+    const code = error?.code || error?.driverError?.code;
+    const message = `${error?.message || ''}`.toLowerCase();
+    return code === 'ER_NO_SUCH_TABLE' || message.includes(`${tableName}`.toLowerCase());
   }
 
   /**
@@ -161,6 +186,101 @@ export class UserService {
         collectCount: Number(item.collectCount || 0),
         createdAt: item.createdAt,
         collectedAt: item.collectedAt,
+        user: {
+          id: Number(item.userId),
+          nickname: item.nickname,
+          avatarUrl: item.avatarUrl,
+        },
+      })),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  /**
+   * 记录浏览历史
+   */
+  async recordHistory(userId: number, postId: number) {
+    const post = await this.postRepository.findOne({
+      where: { id: postId, isDeleted: false, auditStatus: 1 },
+    });
+    if (!post) {
+      throw new NotFoundException('帖子不存在');
+    }
+
+    const existing = await this.historyRepository.findOne({
+      where: { userId, postId },
+    });
+
+    if (existing) {
+      existing.lastViewedAt = new Date();
+      await this.historyRepository.save(existing);
+      return { success: true };
+    }
+
+    await this.historyRepository.save({
+      userId,
+      postId,
+      lastViewedAt: new Date(),
+    });
+    return { success: true };
+  }
+
+  /**
+   * 获取浏览历史
+   */
+  async getHistory(userId: number, params: { page: number; pageSize: number }) {
+    const { page, pageSize } = params;
+    const skip = (page - 1) * pageSize;
+
+    const queryBuilder = this.historyRepository
+      .createQueryBuilder('history')
+      .leftJoinAndSelect(Post, 'post', 'post.id = history.post_id')
+      .leftJoinAndSelect(User, 'author', 'author.id = post.user_id')
+      .where('history.user_id = :userId', { userId })
+      .andWhere('post.is_deleted = 0')
+      .andWhere('post.audit_status = 1')
+      .orderBy('history.last_viewed_at', 'DESC')
+      .skip(skip)
+      .take(pageSize)
+      .select([
+        'history.id as historyId',
+        'history.last_viewed_at as lastViewedAt',
+        'post.id as id',
+        'post.title as title',
+        'post.content as content',
+        'post.type as type',
+        'post.cover_url as coverUrl',
+        'post.media_urls as mediaUrls',
+        'post.like_count as likeCount',
+        'post.comment_count as commentCount',
+        'post.collect_count as collectCount',
+        'post.created_at as createdAt',
+        'author.id as userId',
+        'author.nickname as nickname',
+        'author.avatar_url as avatarUrl',
+      ]);
+
+    const [list, total] = await Promise.all([
+      queryBuilder.getRawMany(),
+      this.historyRepository.count({ where: { userId } }),
+    ]);
+
+    return {
+      list: list.map((item) => ({
+        id: Number(item.id),
+        title: item.title,
+        content: item.content,
+        type: Number(item.type),
+        coverUrl: item.coverUrl,
+        mediaUrls: item.mediaUrls,
+        likeCount: Number(item.likeCount || 0),
+        commentCount: Number(item.commentCount || 0),
+        collectCount: Number(item.collectCount || 0),
+        createdAt: item.createdAt,
+        lastViewedAt: item.lastViewedAt,
         user: {
           id: Number(item.userId),
           nickname: item.nickname,

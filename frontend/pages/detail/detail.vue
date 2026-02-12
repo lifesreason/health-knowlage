@@ -35,8 +35,8 @@
             <text class="view-count">· {{ article.viewCount || 0 }} 阅读</text>
           </view>
         </view>
-        <view class="follow-btn">
-          <text>关注</text>
+        <view class="follow-btn" @click="handleFollow">
+          <text>{{ article.user?.isFollowed ? '已关注' : '关注' }}</text>
         </view>
       </view>
 
@@ -111,8 +111,13 @@
         <button class="action-btn share-btn" open-type="share">
           <text class="action-icon">📤</text>
         </button>
+        <view class="action-btn" @click="handlePoster">
+          <text class="action-icon">🖼</text>
+        </view>
       </view>
     </view>
+
+    <canvas canvas-id="detailPosterCanvas" class="poster-canvas"></canvas>
   </view>
 </template>
 
@@ -123,7 +128,8 @@ import { useThemeStore } from '@/store/theme';
 import { useUserStore } from '@/store/user';
 import { storeToRefs } from 'pinia';
 import { formatRelativeTime } from '@/common/utils';
-import { postApi, interactionApi } from '@/api';
+import { buildSharePoster, previewOrSavePoster } from '@/common/poster';
+import { postApi, interactionApi, userApi } from '@/api';
 
 const themeStore = useThemeStore();
 const userStore = useUserStore();
@@ -134,6 +140,9 @@ const article = ref<any>(null);
 const loading = ref(true);
 const showComments = ref(false);
 const showCommentInput = ref(false);
+const followLoading = ref(false);
+const posterLoading = ref(false);
+const API_BASE_URL = 'http://localhost:3000/api/v1';
 
 const formatTime = (time: string) => formatRelativeTime(time);
 
@@ -148,12 +157,38 @@ const loadArticle = async () => {
   loading.value = true;
   try {
     const res = await postApi.getDetail(articleId.value);
-    article.value = res;
+    article.value = {
+      ...res,
+      user: {
+        ...res.user,
+        isFollowed: !!res.user?.isFollowed,
+      },
+    };
+
+    if (userStore.isLoggedIn) {
+      userApi.recordHistory({ postId: articleId.value }).catch(() => {});
+    }
   } catch (error) {
     console.error('加载文章失败', error);
     uni.showToast({ title: '加载失败', icon: 'none' });
   } finally {
     loading.value = false;
+  }
+};
+
+const handleFollow = async () => {
+  if (!userStore.requireLogin() || !article.value?.user?.id || followLoading.value) return;
+  followLoading.value = true;
+  const prev = !!article.value.user.isFollowed;
+  article.value.user.isFollowed = !prev;
+  try {
+    const res = await interactionApi.follow({ userId: article.value.user.id });
+    article.value.user.isFollowed = !!res.followed;
+  } catch {
+    article.value.user.isFollowed = prev;
+    uni.showToast({ title: '操作失败', icon: 'none' });
+  } finally {
+    followLoading.value = false;
   }
 };
 
@@ -191,6 +226,30 @@ const handleCollect = async () => {
 
 const previewImage = (url: string, index: number) => {
   uni.previewImage({ current: index, urls: article.value?.mediaUrls || [url] });
+};
+
+const handlePoster = async () => {
+  if (!article.value || posterLoading.value) return;
+  posterLoading.value = true;
+  uni.showLoading({ title: '生成海报中...' });
+  try {
+    const qrcodeUrl =
+      `${API_BASE_URL}/share/wxacode?scene=${encodeURIComponent(`id=${article.value.id}`)}` +
+      `&page=${encodeURIComponent('pages/detail/detail')}&width=280`;
+    const poster = await buildSharePoster({
+      canvasId: 'detailPosterCanvas',
+      title: article.value.title || '健康内容分享',
+      subtitle: article.value.user?.nickname ? `作者：${article.value.user.nickname}` : '银龄健康社区',
+      imageUrl: article.value.coverUrl || article.value.mediaUrls?.[0],
+      qrcodeUrl,
+    });
+    await previewOrSavePoster(poster);
+  } catch {
+    uni.showToast({ title: '海报生成失败', icon: 'none' });
+  } finally {
+    uni.hideLoading();
+    posterLoading.value = false;
+  }
 };
 
 onShareAppMessage(() => ({
@@ -543,5 +602,13 @@ onLoad((options: any) => {
 .share-btn {
   background: transparent;
   padding: 16rpx;
+}
+
+.poster-canvas {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  width: 540px;
+  height: 960px;
 }
 </style>

@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Delete, Body, Query, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Query, Param, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -115,6 +115,34 @@ export class UserController {
     @Query('pageSize') pageSize: number = 10,
   ) {
     return this.userService.getCollections(req.user.id, { page, pageSize });
+  }
+
+  /**
+   * 记录浏览历史
+   */
+  @Post('history')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '记录浏览历史' })
+  async recordHistory(@Request() req, @Body() body: { postId: number }) {
+    return this.userService.recordHistory(req.user.id, body.postId);
+  }
+
+  /**
+   * 获取浏览历史
+   */
+  @Get('history')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取浏览历史' })
+  @ApiQuery({ name: 'page', required: false, description: '页码' })
+  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量' })
+  async getHistory(
+    @Request() req,
+    @Query('page') page: number = 1,
+    @Query('pageSize') pageSize: number = 10,
+  ) {
+    return this.userService.getHistory(req.user.id, { page, pageSize });
   }
 
   /**

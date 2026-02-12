@@ -11,7 +11,13 @@ import { JwtStrategy } from './jwt.strategy';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { JwtAuthService } from './jwt.service';
 import { WechatService } from './wechat.service';
-import { UserService } from '../user/user.service';
+import { AuthCacheService } from './auth-cache.service';
+import { SmsService } from './sms/sms.service';
+import { SmsConfigValidator } from './sms/sms-config.validator';
+import { AliyunSmsProvider } from './sms/providers/aliyun-sms.provider';
+import { TencentSmsProvider } from './sms/providers/tencent-sms.provider';
+import { MockSmsProvider } from './sms/providers/mock-sms.provider';
+import { UserModule } from '../user/user.module';
 import { User } from '../../entities/user.entity';
 
 @Module({
@@ -29,16 +35,22 @@ import { User } from '../../entities/user.entity';
     }),
     HttpModule,
     TypeOrmModule.forFeature([User]),
+    UserModule,
   ],
   controllers: [AuthController],
   providers: [
     AuthService,
     JwtAuthService,
     WechatService,
+    AuthCacheService,
+    SmsService,
+    SmsConfigValidator,
+    AliyunSmsProvider,
+    TencentSmsProvider,
+    MockSmsProvider,
     JwtStrategy,
     JwtAuthGuard,
-    UserService,
   ],
-  exports: [PassportModule, JwtModule, JwtAuthService, JwtAuthGuard, UserService],
+  exports: [PassportModule, JwtModule, JwtAuthService, JwtAuthGuard, UserModule, WechatService],
 })
 export class AuthModule {}

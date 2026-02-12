@@ -28,6 +28,11 @@ export const authApi = {
   logout() {
     return http.post('/auth/logout');
   },
+
+  /** 刷新 Token */
+  refresh(data: { refreshToken: string }) {
+    return http.post('/auth/refresh', data);
+  },
 };
 
 export default authApi;

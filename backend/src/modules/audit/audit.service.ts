@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Post } from '../../entities/post.entity';
 import { AuditLog } from '../../entities/audit-log.entity';
+import { AuditQueueService } from './audit-queue.service';
+import { MachineAuditProcessor } from './machine-audit.processor';
 
 @Injectable()
 export class AuditService {
@@ -11,6 +13,8 @@ export class AuditService {
     private postRepository: Repository<Post>,
     @InjectRepository(AuditLog)
     private auditLogRepository: Repository<AuditLog>,
+    private auditQueueService: AuditQueueService,
+    private machineAuditProcessor: MachineAuditProcessor,
   ) {}
 
   /**
@@ -144,6 +148,23 @@ export class AuditService {
       approved,
       rejected,
       total: pending + approved + rejected,
+    };
+  }
+
+  async getMachineStatus() {
+    const queue = await this.auditQueueService.getQueueSize();
+    return {
+      ...this.machineAuditProcessor.getStatus(),
+      queue,
+    };
+  }
+
+  async runMachineReviewOnce() {
+    const result = await this.machineAuditProcessor.processOne();
+    const queue = await this.auditQueueService.getQueueSize();
+    return {
+      ...result,
+      queue,
     };
   }
 }

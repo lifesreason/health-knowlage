@@ -1,5 +1,6 @@
 import { Controller, Post, Body, UseGuards, Request, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import {
   WechatLoginDto,
@@ -8,6 +9,7 @@ import {
   SendCodeDto,
   BindMobileManualDto,
   AdminLoginDto,
+  RefreshTokenDto,
 } from './dto/login.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
@@ -37,7 +39,7 @@ export class AuthController {
   @ApiOperation({ summary: '绑定手机号' })
   @ApiResponse({ status: 200, description: '绑定成功', type: LoginResponseDto })
   async bindMobile(@Request() req, @Body() dto: BindMobileDto) {
-    const sessionKey = this.authService.getSessionKey(req.user.id);
+    const sessionKey = await this.authService.getSessionKey(req.user.id);
     if (!sessionKey) {
       throw new BadRequestException('session_key 已失效，请重新登录');
     }
@@ -49,6 +51,7 @@ export class AuthController {
    */
   @Public()
   @Post('send-code')
+  @Throttle({ default: { limit: 1, ttl: 60000 } })
   @ApiOperation({ summary: '发送短信验证码' })
   async sendCode(@Body() dto: SendCodeDto) {
     return this.authService.sendCode(dto);
@@ -74,6 +77,16 @@ export class AuthController {
   @ApiResponse({ status: 200, description: '登录成功', type: LoginResponseDto })
   async adminLogin(@Body() dto: AdminLoginDto) {
     return this.authService.adminLogin(dto);
+  }
+
+  /**
+   * 刷新 Token
+   */
+  @Public()
+  @Post('refresh')
+  @ApiOperation({ summary: '刷新 Token' })
+  async refresh(@Body() dto: RefreshTokenDto) {
+    return this.authService.refreshToken(dto);
   }
 
   /**

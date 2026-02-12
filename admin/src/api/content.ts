@@ -77,3 +77,12 @@ export function getTrendStats(params: { days: number }) {
     params,
   });
 }
+
+// 获取推荐缓存统计
+export function getFeedCacheStats(params?: { windowMinutes?: number }) {
+  return request({
+    url: '/stats/feed-cache',
+    method: 'get',
+    params,
+  });
+}
