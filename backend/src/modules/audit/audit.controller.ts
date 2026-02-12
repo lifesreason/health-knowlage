@@ -1,9 +1,15 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuditService } from './audit.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 @ApiTags('审核管理')
 @Controller('audit')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(9)
+@ApiBearerAuth()
 export class AuditController {
   constructor(private readonly auditService: AuditService) {}
 

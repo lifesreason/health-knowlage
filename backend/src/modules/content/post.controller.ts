@@ -2,6 +2,8 @@ import { Controller, Get, Post, Put, Delete, Body, Query, Param, UseGuards, Requ
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { PostService } from './post.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 @ApiTags('post')
 @Controller('post')
@@ -14,6 +16,9 @@ export class PostController {
    * 获取帖子列表（管理后台）
    */
   @Get('admin/list')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(9)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '获取帖子列表（管理后台）' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'pageSize', required: false })
@@ -37,6 +42,9 @@ export class PostController {
    * 删除帖子（管理后台）
    */
   @Delete('admin/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(9)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '删除帖子（管理后台）' })
   async adminDeletePost(@Param('id') id: string) {
     return this.postService.adminDeletePost(+id);
@@ -46,6 +54,9 @@ export class PostController {
    * 创建帖子（管理后台）
    */
   @Post('admin/create')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(9)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '创建帖子（管理后台）' })
   async adminCreatePost(@Body() body: {
     circleId: number;
@@ -85,13 +96,19 @@ export class PostController {
   }
 
   /**
-   * 获取帖子详情
+   * 搜索帖子
    */
-  @Get(':id')
-  @ApiOperation({ summary: '获取帖子详情' })
-  @ApiResponse({ status: 200, description: '获取成功' })
-  async getDetail(@Param('id') id: string) {
-    return this.postService.getPostDetail(+id);
+  @Get('search')
+  @ApiOperation({ summary: '搜索帖子' })
+  @ApiQuery({ name: 'keyword', required: true, description: '关键词' })
+  @ApiQuery({ name: 'page', required: false, description: '页码' })
+  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量' })
+  async search(
+    @Query('keyword') keyword: string,
+    @Query('page') page: number = 1,
+    @Query('pageSize') pageSize: number = 20,
+  ) {
+    return this.postService.searchPosts({ keyword, page, pageSize });
   }
 
   /**
@@ -110,6 +127,16 @@ export class PostController {
     @Query('pageSize') pageSize: number = 10,
   ) {
     return this.postService.getMyPosts(req.user.id, { status, page, pageSize });
+  }
+
+  /**
+   * 获取帖子详情
+   */
+  @Get(':id')
+  @ApiOperation({ summary: '获取帖子详情' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  async getDetail(@Param('id') id: string) {
+    return this.postService.getPostDetail(+id);
   }
 
   /**

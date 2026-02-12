@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Comment } from '../../entities/comment.entity';
 import { Post } from '../../entities/post.entity';
+import { Like } from '../../entities/like.entity';
 
 @Injectable()
 export class CommentService {
@@ -11,6 +12,8 @@ export class CommentService {
     private commentRepository: Repository<Comment>,
     @InjectRepository(Post)
     private postRepository: Repository<Post>,
+    @InjectRepository(Like)
+    private likeRepository: Repository<Like>,
   ) {}
 
   /**
@@ -114,7 +117,26 @@ export class CommentService {
    * 点赞评论
    */
   async likeComment(commentId: number, userId: number) {
-    // TODO: 实现评论点赞
+    const comment = await this.commentRepository.findOne({
+      where: { id: commentId, isDeleted: false, auditStatus: 1 },
+    });
+    if (!comment) {
+      throw new Error('评论不存在');
+    }
+
+    const existing = await this.likeRepository.findOne({
+      where: { userId, targetId: commentId, targetType: 2 },
+    });
+    if (existing) {
+      throw new Error('已经点赞过了');
+    }
+
+    await this.likeRepository.save({
+      userId,
+      targetId: commentId,
+      targetType: 2,
+    });
+    await this.commentRepository.increment({ id: commentId }, 'likeCount', 1);
     return { message: '点赞成功' };
   }
 
@@ -122,7 +144,15 @@ export class CommentService {
    * 取消点赞评论
    */
   async unlikeComment(commentId: number, userId: number) {
-    // TODO: 实现取消点赞评论
+    const like = await this.likeRepository.findOne({
+      where: { userId, targetId: commentId, targetType: 2 },
+    });
+    if (!like) {
+      throw new Error('未点赞');
+    }
+
+    await this.likeRepository.remove(like);
+    await this.commentRepository.decrement({ id: commentId }, 'likeCount', 1);
     return { message: '取消点赞成功' };
   }
 

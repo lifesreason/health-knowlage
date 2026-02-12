@@ -21,17 +21,17 @@ export const circleApi = {
 
   /** 加入圈子 */
   join(id: number) {
-    return http.post(`/circle/${id}/join`);
+    return http.post('/circle/join', { circleId: id });
   },
 
   /** 退出圈子 */
   leave(id: number) {
-    return http.post(`/circle/${id}/leave`);
+    return http.post('/circle/leave', { circleId: id });
   },
 
   /** 获取我加入的圈子 */
   getMyCircles() {
-    return http.get('/circle/my');
+    return http.get('/circle/user/joined');
   },
 };
 

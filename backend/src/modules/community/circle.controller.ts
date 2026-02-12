@@ -2,6 +2,8 @@ import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Requ
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { CircleService } from './circle.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 @ApiTags('circle')
 @Controller('circle')
@@ -14,6 +16,9 @@ export class CircleController {
    * 获取圈子列表（管理后台）
    */
   @Get('admin/list')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(9)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '获取圈子列表（管理后台）' })
   @ApiQuery({ name: 'page', required: false, description: '页码' })
   @ApiQuery({ name: 'pageSize', required: false, description: '每页数量' })
@@ -34,6 +39,9 @@ export class CircleController {
    * 创建圈子（管理后台）
    */
   @Post('admin/create')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(9)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '创建圈子' })
   async createCircle(@Body() body: {
     name: string;
@@ -49,6 +57,9 @@ export class CircleController {
    * 更新圈子（管理后台）
    */
   @Put('admin/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(9)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '更新圈子' })
   async updateCircle(@Param('id') id: string, @Body() body: {
     name?: string;
@@ -64,6 +75,9 @@ export class CircleController {
    * 删除圈子（管理后台）
    */
   @Delete('admin/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(9)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '删除圈子' })
   async deleteCircle(@Param('id') id: string) {
     return this.circleService.deleteCircle(+id);
@@ -79,6 +93,18 @@ export class CircleController {
   @ApiResponse({ status: 200, description: '获取成功' })
   async getCircleList() {
     return this.circleService.getCircleList();
+  }
+
+  /**
+   * 获取用户加入的圈子列表
+   */
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Get('user/joined')
+  @ApiOperation({ summary: '获取用户加入的圈子列表' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  async getUserCircles(@Request() req) {
+    return this.circleService.getUserCircles(req.user.id);
   }
 
   /**
@@ -129,18 +155,6 @@ export class CircleController {
   @ApiResponse({ status: 200, description: '退出成功' })
   async leaveCircle(@Request() req, @Body() body: { circleId: number }) {
     return this.circleService.leaveCircle(req.user.id, body.circleId);
-  }
-
-  /**
-   * 获取用户加入的圈子列表
-   */
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @Get('user/joined')
-  @ApiOperation({ summary: '获取用户加入的圈子列表' })
-  @ApiResponse({ status: 200, description: '获取成功' })
-  async getUserCircles(@Request() req) {
-    return this.circleService.getUserCircles(req.user.id);
   }
 
   /**

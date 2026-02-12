@@ -211,7 +211,11 @@ const handleLike = async (item: any) => {
   item.likeCount += item.isLiked ? 1 : -1;
 
   try {
-    await interactionApi.like({ targetId: item.id, targetType: 'post' });
+    if (item.isLiked) {
+      await interactionApi.like({ targetId: item.id, targetType: 'post' });
+    } else {
+      await interactionApi.unlike({ targetId: item.id, targetType: 'post' });
+    }
   } catch (error) {
     item.isLiked = !item.isLiked;
     item.likeCount += item.isLiked ? 1 : -1;

@@ -18,10 +18,13 @@ async function bootstrap() {
   app.setGlobalPrefix(apiPrefix);
 
   // CORS 配置
-  const corsOrigins = process.env.CORS_ORIGIN?.split(',') || '*';
+  const corsOriginEnv = process.env.CORS_ORIGIN;
+  const corsOrigins = corsOriginEnv
+    ? corsOriginEnv.split(',').map((item) => item.trim()).filter(Boolean)
+    : true;
   app.enableCors({
     origin: corsOrigins,
-    credentials: true,
+    credentials: Array.isArray(corsOrigins),
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type, Accept, Authorization',
   });

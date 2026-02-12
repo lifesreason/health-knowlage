@@ -157,6 +157,7 @@ const sendCode = async () => {
   }
 
   try {
+    await userStore.sendCode(phone.value);
     countdown.value = 60;
     timer = setInterval(() => {
       countdown.value--;
@@ -179,7 +180,7 @@ const handleManualBind = async () => {
 
   try {
     uni.showLoading({ title: '绑定中...' });
-    await new Promise(r => setTimeout(r, 1000));
+    await userStore.bindPhoneManual(phone.value, code.value);
     uni.showToast({ title: '绑定成功', icon: 'success' });
     setTimeout(() => uni.navigateBack(), 1000);
   } finally {

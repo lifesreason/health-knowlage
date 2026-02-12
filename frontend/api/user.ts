@@ -10,18 +10,18 @@ export const userApi = {
   },
 
   /** 更新用户信息 */
-  updateProfile(data: { nickname?: string; avatar?: string }) {
+  updateProfile(data: { nickname?: string; avatarUrl?: string; fontScale?: number }) {
     return http.put('/user/profile', data);
   },
 
   /** 获取用户统计数据 */
   getStats() {
-    return http.get('/user/stats');
+    return http.get('/user/my-stats');
   },
 
   /** 获取用户发布列表 */
-  getMyPosts(params: { page: number; pageSize: number }) {
-    return http.get('/user/posts', { params });
+  getMyPosts(params: { status?: 'published' | 'audit'; page: number; pageSize: number }) {
+    return http.get('/post/my-posts', { params });
   },
 
   /** 获取用户收藏列表 */

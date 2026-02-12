@@ -100,6 +100,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { User, Document, ChatDotRound, Clock, DocumentChecked } from '@element-plus/icons-vue';
 import { getAuditStats } from '@/api/audit';
+import { getOverviewStats } from '@/api/content';
 
 const stats = reactive({
   users: 0,
@@ -111,13 +112,14 @@ const stats = reactive({
 // 加载统计数据
 const loadStats = async () => {
   try {
-    const auditStats = await getAuditStats();
-    stats.pending = auditStats.pending;
-    
-    // TODO: 从其他接口获取其他统计数据
-    stats.users = 100;
-    stats.posts = 500;
-    stats.circles = 10;
+    const [auditStats, overview] = await Promise.all([
+      getAuditStats(),
+      getOverviewStats(),
+    ]);
+    stats.pending = auditStats.pending ?? overview.pendingAudit ?? 0;
+    stats.users = overview.userCount || 0;
+    stats.posts = overview.postCount || 0;
+    stats.circles = overview.circleCount || 0;
   } catch (error) {
     console.error('加载统计失败', error);
   }

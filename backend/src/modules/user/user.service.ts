@@ -1,13 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
+import { Repository } from 'typeorm';
 import { User } from '../../entities/user.entity';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { Collect } from '../../entities/collect.entity';
+import { Post } from '../../entities/post.entity';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Collect)
+    private collectRepository: Repository<Collect>,
+    @InjectRepository(Post)
+    private postRepository: Repository<Post>,
   ) {}
 
   /**
@@ -45,6 +52,20 @@ export class UserService {
   }
 
   /**
+   * 更新用户资料（仅允许白名单字段）
+   */
+  async updateProfile(id: number, data: UpdateProfileDto): Promise<User> {
+    const updateData: Partial<User> = {};
+
+    if (data.nickname !== undefined) updateData.nickname = data.nickname;
+    if (data.avatarUrl !== undefined) updateData.avatarUrl = data.avatarUrl;
+    if (data.fontScale !== undefined) updateData.fontScale = data.fontScale;
+
+    await this.userRepository.update(id, updateData);
+    return this.findById(id);
+  }
+
+  /**
    * 绑定手机号
    */
   async bindMobile(userId: number, mobileCipher: string): Promise<User> {
@@ -55,11 +76,101 @@ export class UserService {
    * 获取用户统计信息
    */
   async getUserStats(userId: number) {
-    // TODO: 实现统计数据
+    const postStat = await this.postRepository
+      .createQueryBuilder('post')
+      .select('COALESCE(SUM(post.like_count), 0)', 'likes')
+      .addSelect('COALESCE(SUM(post.collect_count), 0)', 'collects')
+      .where('post.user_id = :userId', { userId })
+      .andWhere('post.is_deleted = 0')
+      .getRawOne<{ likes: string; collects: string }>();
+
+    const joinedCirclesResult = await this.userRepository.query(
+      `SELECT COUNT(1) as cnt FROM rel_user_circle WHERE user_id = ?`,
+      [userId],
+    );
+    const joinedCircles = Number(joinedCirclesResult?.[0]?.cnt || 0);
+
+    const receivedLikes = Number(postStat?.likes || 0);
+    const receivedCollects = Number(postStat?.collects || 0);
+
     return {
-      receivedLikesAndCollects: 0,
+      receivedLikesAndCollects: receivedLikes + receivedCollects,
+      likesReceived: receivedLikes,
+      collectsReceived: receivedCollects,
       followingCount: 0,
-      joinedCircles: 0,
+      following: 0,
+      followers: 0,
+      joinedCircles,
+      circles: joinedCircles,
+    };
+  }
+
+  /**
+   * 获取我的收藏列表
+   */
+  async getCollections(userId: number, params: { page: number; pageSize: number }) {
+    const { page, pageSize } = params;
+    const skip = (page - 1) * pageSize;
+
+    const queryBuilder = this.collectRepository
+      .createQueryBuilder('collect')
+      .leftJoinAndSelect(Post, 'post', 'post.id = collect.targetId')
+      .leftJoinAndSelect(User, 'author', 'author.id = post.userId')
+      .where('collect.userId = :userId', { userId })
+      .andWhere('collect.targetType = 1')
+      .andWhere('post.isDeleted = 0')
+      .andWhere('post.auditStatus = 1')
+      .orderBy('collect.createdAt', 'DESC')
+      .skip(skip)
+      .take(pageSize)
+      .select([
+        'collect.id as collectId',
+        'collect.createdAt as collectedAt',
+        'post.id as id',
+        'post.title as title',
+        'post.content as content',
+        'post.type as type',
+        'post.coverUrl as coverUrl',
+        'post.mediaUrls as mediaUrls',
+        'post.likeCount as likeCount',
+        'post.commentCount as commentCount',
+        'post.collectCount as collectCount',
+        'post.createdAt as createdAt',
+        'author.id as userId',
+        'author.nickname as nickname',
+        'author.avatarUrl as avatarUrl',
+      ]);
+
+    const [list, total] = await Promise.all([
+      queryBuilder.getRawMany(),
+      this.collectRepository.count({
+        where: { userId, targetType: 1 },
+      }),
+    ]);
+
+    return {
+      list: list.map((item) => ({
+        id: Number(item.id),
+        title: item.title,
+        content: item.content,
+        type: Number(item.type),
+        coverUrl: item.coverUrl,
+        mediaUrls: item.mediaUrls,
+        likeCount: Number(item.likeCount || 0),
+        commentCount: Number(item.commentCount || 0),
+        collectCount: Number(item.collectCount || 0),
+        createdAt: item.createdAt,
+        collectedAt: item.collectedAt,
+        user: {
+          id: Number(item.userId),
+          nickname: item.nickname,
+          avatarUrl: item.avatarUrl,
+        },
+      })),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
     };
   }
 
@@ -126,6 +237,15 @@ export class UserService {
    */
   async deleteUser(id: number) {
     await this.userRepository.update(id, { isDeleted: true });
+    return { success: true };
+  }
+
+  /**
+   * 更新用户状态（管理后台）
+   */
+  async updateUserStatus(id: number, status: number) {
+    const normalizedStatus = status === 0 ? 0 : 1;
+    await this.userRepository.update(id, { status: normalizedStatus });
     return { success: true };
   }
 }

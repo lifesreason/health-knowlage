@@ -198,12 +198,12 @@ const handlePublish = async () => {
     const uploadedUrls: string[] = [];
     if (publishType.value === 'image') {
       for (const path of formData.value.mediaUrls) {
-        const policyRes = await postApi.getOssPolicy();
+        const policyRes = await postApi.getOssPolicy({ fileType: 'image' });
         const url = await postApi.uploadToOss(policyRes.url || '', policyRes, path);
         uploadedUrls.push(url);
       }
     } else if (formData.value.videoUrl) {
-      const policyRes = await postApi.getOssPolicy();
+      const policyRes = await postApi.getOssPolicy({ fileType: 'video' });
       const url = await postApi.uploadToOss(policyRes.url || '', policyRes, formData.value.videoUrl);
       uploadedUrls.push(url);
     }

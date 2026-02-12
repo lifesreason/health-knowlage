@@ -75,7 +75,11 @@ const handleLike = async (item: any) => {
   item.isLiked = !item.isLiked;
   item.likeCount += item.isLiked ? 1 : -1;
   try {
-    await commentApi.like(item.id);
+    if (item.isLiked) {
+      await commentApi.like(item.id);
+    } else {
+      await commentApi.deleteLike(item.id);
+    }
   } catch {
     item.isLiked = !item.isLiked;
     item.likeCount += item.isLiked ? 1 : -1;

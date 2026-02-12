@@ -1,7 +1,14 @@
-import { Controller, Post, Body, UseGuards, Get, Request } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { WechatLoginDto, BindMobileDto, LoginResponseDto } from './dto/login.dto';
+import {
+  WechatLoginDto,
+  BindMobileDto,
+  LoginResponseDto,
+  SendCodeDto,
+  BindMobileManualDto,
+  AdminLoginDto,
+} from './dto/login.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
 
@@ -30,9 +37,43 @@ export class AuthController {
   @ApiOperation({ summary: '绑定手机号' })
   @ApiResponse({ status: 200, description: '绑定成功', type: LoginResponseDto })
   async bindMobile(@Request() req, @Body() dto: BindMobileDto) {
-    // TODO: 从 Redis 获取 session_key
-    const sessionKey = req.user.sessionKey || '';
+    const sessionKey = this.authService.getSessionKey(req.user.id);
+    if (!sessionKey) {
+      throw new BadRequestException('session_key 已失效，请重新登录');
+    }
     return this.authService.bindMobile(req.user.id, dto, sessionKey);
+  }
+
+  /**
+   * 发送短信验证码
+   */
+  @Public()
+  @Post('send-code')
+  @ApiOperation({ summary: '发送短信验证码' })
+  async sendCode(@Body() dto: SendCodeDto) {
+    return this.authService.sendCode(dto);
+  }
+
+  /**
+   * 手动绑定手机号
+   */
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Post('bind/phone')
+  @ApiOperation({ summary: '手动绑定手机号' })
+  async bindPhoneManual(@Request() req, @Body() dto: BindMobileManualDto) {
+    return this.authService.bindMobileManual(req.user.id, dto);
+  }
+
+  /**
+   * 管理员登录
+   */
+  @Public()
+  @Post('admin/login')
+  @ApiOperation({ summary: '管理后台登录' })
+  @ApiResponse({ status: 200, description: '登录成功', type: LoginResponseDto })
+  async adminLogin(@Body() dto: AdminLoginDto) {
+    return this.authService.adminLogin(dto);
   }
 
   /**

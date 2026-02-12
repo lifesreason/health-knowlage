@@ -26,8 +26,8 @@ export const postApi = {
   },
 
   /** 获取 OSS 上传凭证 */
-  getOssPolicy(data: { filename: string; type: string }) {
-    return http.post('/oss/policy', data);
+  getOssPolicy(params: { fileType: 'image' | 'video' }) {
+    return http.get('/oss/policy', { params });
   },
 
   /** 上传文件到 OSS */

@@ -3,14 +3,15 @@
  */
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import authApi from '@/api/auth';
 
 interface UserInfo {
   id: number;
-  openid: string;
   nickname: string;
-  avatar: string;
-  mobile: string;
+  avatarUrl: string;
+  mobile?: string;
   role: number; // 0: 普通用户, 1: 认证医师, 9: 管理员
+  fontScale?: number;
 }
 
 export const useUserStore = defineStore(
@@ -47,10 +48,18 @@ export const useUserStore = defineStore(
     // 微信登录
     const wxLogin = async (code: string) => {
       try {
-        // TODO: 调用后端登录接口
-        // const res = await authApi.login({ code });
-        // setToken(res.token);
-        // setUserInfo(res.userInfo);
+        const res = await authApi.login({ code });
+        setToken(res.accessToken);
+        if (res.userInfo) {
+          setUserInfo({
+            ...res.userInfo,
+            mobile: 'bound',
+          });
+        } else {
+          userInfo.value = null;
+          uni.removeStorageSync('userInfo');
+        }
+        uni.setStorageSync('refreshToken', res.refreshToken || '');
         return true;
       } catch (error) {
         console.error('微信登录失败', error);
@@ -61,14 +70,40 @@ export const useUserStore = defineStore(
     // 绑定手机号
     const bindPhone = async (encryptedData: string, iv: string) => {
       try {
-        // TODO: 调用后端绑定接口
-        // const res = await authApi.bind({ encryptedData, iv });
-        // setUserInfo(res.userInfo);
+        const res = await authApi.bindPhone({ encryptedData, iv });
+        setToken(res.accessToken);
+        if (res.userInfo) {
+          setUserInfo({
+            ...res.userInfo,
+            mobile: 'bound',
+          });
+        }
+        uni.setStorageSync('refreshToken', res.refreshToken || '');
         return true;
       } catch (error) {
         console.error('绑定手机号失败', error);
         return false;
       }
+    };
+
+    // 发送验证码
+    const sendCode = async (phone: string) => {
+      await authApi.sendCode({ phone });
+      return true;
+    };
+
+    // 手动绑定手机号
+    const bindPhoneManual = async (phone: string, code: string) => {
+      const res = await authApi.bindPhoneManual({ phone, code });
+      setToken(res.accessToken);
+      if (res.userInfo) {
+        setUserInfo({
+          ...res.userInfo,
+          mobile: 'bound',
+        });
+      }
+      uni.setStorageSync('refreshToken', res.refreshToken || '');
+      return true;
     };
 
     // 设置 Token
@@ -88,6 +123,7 @@ export const useUserStore = defineStore(
       token.value = '';
       userInfo.value = null;
       uni.removeStorageSync('token');
+      uni.removeStorageSync('refreshToken');
       uni.removeStorageSync('userInfo');
     };
 
@@ -114,6 +150,8 @@ export const useUserStore = defineStore(
       silentLogin,
       wxLogin,
       bindPhone,
+      sendCode,
+      bindPhoneManual,
       setToken,
       setUserInfo,
       logout,

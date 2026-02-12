@@ -2,6 +2,8 @@ import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, Request }
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { CommentService } from './comment.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 @ApiTags('comment')
 @Controller('comment')
@@ -14,6 +16,9 @@ export class CommentController {
    * 获取评论列表（管理后台）
    */
   @Get('admin/list')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(9)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '获取评论列表（管理后台）' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'pageSize', required: false })
@@ -37,6 +42,9 @@ export class CommentController {
    * 删除评论（管理后台）
    */
   @Delete('admin/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(9)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '删除评论（管理后台）' })
   async adminDeleteComment(@Param('id') id: string) {
     return this.commentService.adminDeleteComment(+id);

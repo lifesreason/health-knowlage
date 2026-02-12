@@ -16,7 +16,7 @@ USE silverhealth;
 
 -- 1.1 用户基础表 sys_user
 CREATE TABLE IF NOT EXISTS `sys_user` (
-  `id` BIGINT(20) NOT NULL COMMENT '分布式ID',
+  `id` BIGINT(20) NOT NULL AUTO_INCREMENT COMMENT '用户ID',
   `openid` VARCHAR(64) NOT NULL COMMENT '微信OpenID',
   `unionid` VARCHAR(64) DEFAULT NULL COMMENT '微信UnionID(预留)',
   `nickname` VARCHAR(64) NOT NULL DEFAULT '用户' COMMENT '昵称',
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS `sys_doctor_profile` (
 
 -- 2.1 圈子表 biz_circle
 CREATE TABLE IF NOT EXISTS `biz_circle` (
-  `id` BIGINT(20) NOT NULL COMMENT '圈子ID',
+  `id` BIGINT(20) NOT NULL AUTO_INCREMENT COMMENT '圈子ID',
   `name` VARCHAR(32) NOT NULL COMMENT '圈子名称',
   `description` VARCHAR(255) DEFAULT NULL COMMENT '简介',
   `cover_url` VARCHAR(255) DEFAULT NULL COMMENT '封面图',
@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS `rel_user_circle` (
 
 -- 3.1 帖子/内容表 biz_post
 CREATE TABLE IF NOT EXISTS `biz_post` (
-  `id` BIGINT(20) NOT NULL COMMENT '帖子ID',
+  `id` BIGINT(20) NOT NULL AUTO_INCREMENT COMMENT '帖子ID',
   `user_id` BIGINT(20) NOT NULL COMMENT '作者ID',
   `circle_id` BIGINT(20) NOT NULL COMMENT '所属圈子ID',
   `type` TINYINT(4) NOT NULL COMMENT '1:图文 2:视频',
@@ -97,6 +97,7 @@ CREATE TABLE IF NOT EXISTS `biz_post` (
   `view_count` INT(11) DEFAULT 0 COMMENT '浏览量',
   `like_count` INT(11) DEFAULT 0 COMMENT '点赞量',
   `comment_count` INT(11) DEFAULT 0 COMMENT '评论量',
+  `collect_count` INT(11) DEFAULT 0 COMMENT '收藏量',
   `audit_status` TINYINT(4) DEFAULT 0 COMMENT '0审核中 1公开 2驳回',
   `reject_reason` VARCHAR(64) DEFAULT NULL COMMENT '驳回提示(用户可见)',
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -109,7 +110,7 @@ CREATE TABLE IF NOT EXISTS `biz_post` (
 
 -- 3.2 评论表 biz_comment
 CREATE TABLE IF NOT EXISTS `biz_comment` (
-  `id` BIGINT(20) NOT NULL COMMENT '评论ID',
+  `id` BIGINT(20) NOT NULL AUTO_INCREMENT COMMENT '评论ID',
   `post_id` BIGINT(20) NOT NULL COMMENT '关联帖子',
   `user_id` BIGINT(20) NOT NULL COMMENT '评论人',
   `root_id` BIGINT(20) DEFAULT 0 COMMENT '根评论ID(0为一级评论)',
@@ -138,7 +139,18 @@ CREATE TABLE IF NOT EXISTS `biz_like` (
   UNIQUE KEY `uk_user_target` (`user_id`, `target_id`, `target_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='点赞记录表';
 
--- 4.2 内容安全审核日志 sys_audit_log
+-- 4.2 收藏记录表 biz_collect
+CREATE TABLE IF NOT EXISTS `biz_collect` (
+  `id` BIGINT(20) NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT(20) NOT NULL,
+  `target_id` BIGINT(20) NOT NULL COMMENT '帖子ID',
+  `target_type` TINYINT(4) NOT NULL COMMENT '1:帖子',
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_target_collect` (`user_id`, `target_id`, `target_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='收藏记录表';
+
+-- 4.3 内容安全审核日志 sys_audit_log
 CREATE TABLE IF NOT EXISTS `sys_audit_log` (
   `id` BIGINT(20) NOT NULL AUTO_INCREMENT,
   `target_id` BIGINT(20) NOT NULL COMMENT '帖子ID',

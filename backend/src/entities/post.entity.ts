@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { User } from './user.entity';
 import { Circle } from './circle.entity';
@@ -7,9 +7,6 @@ import { Circle } from './circle.entity';
 @Index('idx_user_created', ['userId', 'createdAt'])
 @Index('idx_feed_query', ['circleId', 'auditStatus', 'createdAt'])
 export class Post extends BaseEntity {
-  @PrimaryGeneratedColumn()
-  id: number;
-
   @Column({ type: 'bigint', name: 'user_id' })
   userId: number;
 
@@ -46,6 +43,9 @@ export class Post extends BaseEntity {
 
   @Column({ type: 'int', default: 0, name: 'comment_count' })
   commentCount: number;
+
+  @Column({ type: 'int', default: 0, name: 'collect_count' })
+  collectCount: number;
 
   @Column({ type: 'tinyint', default: 0, name: 'audit_status' })
   auditStatus: number; // 0: 审核中, 1: 已发布, 2: 驳回

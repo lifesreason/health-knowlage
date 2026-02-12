@@ -226,7 +226,11 @@ const handleLike = async (item: any) => {
   item.isLiked = !item.isLiked;
   item.likeCount += item.isLiked ? 1 : -1;
   try {
-    await interactionApi.like({ targetId: item.id, targetType: 'post' });
+    if (item.isLiked) {
+      await interactionApi.like({ targetId: item.id, targetType: 'post' });
+    } else {
+      await interactionApi.unlike({ targetId: item.id, targetType: 'post' });
+    }
   } catch {
     item.isLiked = !item.isLiked;
     item.likeCount += item.isLiked ? 1 : -1;
@@ -238,10 +242,14 @@ const handleCollect = async (item: any) => {
   item.isCollected = !item.isCollected;
   item.collectCount = (item.collectCount || 0) + (item.isCollected ? 1 : -1);
   try {
-    await interactionApi.collect({ targetId: item.id, targetType: 'post' });
+    if (item.isCollected) {
+      await interactionApi.collect({ targetId: item.id, targetType: 'post' });
+    } else {
+      await interactionApi.uncollect({ targetId: item.id, targetType: 'post' });
+    }
   } catch {
     item.isCollected = !item.isCollected;
-    item.collectCount = (item.collectCount || 0) + (item.isCollected ? -1 : 1);
+    item.collectCount = (item.collectCount || 0) + (item.isCollected ? 1 : -1);
   }
 };
 

@@ -1,12 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { WechatService } from './wechat.service';
 import { JwtAuthService } from './jwt.service';
-import { User } from '../../entities/user.entity';
-import { WechatLoginDto, BindMobileDto, LoginResponseDto } from './dto/login.dto';
+import {
+  WechatLoginDto,
+  BindMobileDto,
+  LoginResponseDto,
+  SendCodeDto,
+  BindMobileManualDto,
+  AdminLoginDto,
+} from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly sessionKeyStore = new Map<number, { sessionKey: string; expiresAt: number }>();
+  private readonly smsCodeStore = new Map<string, { code: string; expiresAt: number }>();
+
   constructor(
     private userService: UserService,
     private wechatService: WechatService,
@@ -39,6 +48,12 @@ export class AuthService {
 
     // 4. 生成 Token
     const tokens = await this.jwtAuthService.generateTokens(user.id);
+
+    // 临时保存微信 session_key，用于后续绑定手机号
+    this.sessionKeyStore.set(user.id, {
+      sessionKey: wechatInfo.session_key,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+    });
 
     // 5. 判断是否需要绑定手机号
     const needBind = !user.mobileCipher;
@@ -85,6 +100,100 @@ export class AuthService {
         avatarUrl: user.avatarUrl,
         role: user.role,
         fontScale: user.fontScale,
+      },
+    };
+  }
+
+  /**
+   * 获取临时 sessionKey
+   */
+  getSessionKey(userId: number): string | null {
+    const item = this.sessionKeyStore.get(userId);
+    if (!item) return null;
+    if (item.expiresAt < Date.now()) {
+      this.sessionKeyStore.delete(userId);
+      return null;
+    }
+    return item.sessionKey;
+  }
+
+  /**
+   * 发送短信验证码（开发环境模拟）
+   */
+  async sendCode(dto: SendCodeDto) {
+    const code = '123456';
+    this.smsCodeStore.set(dto.phone, {
+      code,
+      expiresAt: Date.now() + 5 * 60 * 1000,
+    });
+
+    return {
+      success: true,
+      expiresIn: 300,
+    };
+  }
+
+  /**
+   * 手动绑定手机号
+   */
+  async bindMobileManual(userId: number, dto: BindMobileManualDto): Promise<LoginResponseDto> {
+    const cached = this.smsCodeStore.get(dto.phone);
+    if (!cached || cached.expiresAt < Date.now() || cached.code !== dto.code) {
+      throw new BadRequestException('验证码错误或已过期');
+    }
+
+    const mobileCipher = this.encryptMobile(dto.phone);
+    const user = await this.userService.bindMobile(userId, mobileCipher);
+    this.smsCodeStore.delete(dto.phone);
+
+    const tokens = await this.jwtAuthService.generateTokens(user.id);
+    return {
+      ...tokens,
+      needBind: false,
+      userInfo: {
+        id: user.id,
+        nickname: user.nickname,
+        avatarUrl: user.avatarUrl,
+        role: user.role,
+        fontScale: user.fontScale,
+      },
+    };
+  }
+
+  /**
+   * 管理员登录
+   */
+  async adminLogin(dto: AdminLoginDto): Promise<LoginResponseDto> {
+    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+
+    if (dto.username !== adminUsername || dto.password !== adminPassword) {
+      throw new UnauthorizedException('用户名或密码错误');
+    }
+
+    let admin = await this.userService.findByOpenid('SYSTEM_ADMIN');
+    if (!admin) {
+      admin = await this.userService.createUser({
+        openid: 'SYSTEM_ADMIN',
+        nickname: '系统管理员',
+        avatarUrl: '',
+        role: 9,
+        status: 1,
+        fontScale: 1.0,
+      });
+    }
+
+    const tokens = await this.jwtAuthService.generateTokens(admin.id);
+
+    return {
+      ...tokens,
+      needBind: false,
+      userInfo: {
+        id: admin.id,
+        nickname: admin.nickname,
+        avatarUrl: admin.avatarUrl,
+        role: admin.role,
+        fontScale: admin.fontScale,
       },
     };
   }

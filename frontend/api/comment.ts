@@ -5,13 +5,13 @@ import http from '@/common/http';
 
 export const commentApi = {
   /** 获取评论列表 */
-  getList(params: { postId: number; page: number; pageSize: number }) {
-    return http.get('/comment/list', { params });
+  getList(params: { postId: number; page: number; pageSize: number; rootId?: number }) {
+    return http.get('/comment', { params });
   },
 
   /** 发表评论 */
-  create(data: { postId: number; content: string; parentId?: number }) {
-    return http.post('/comment/create', data);
+  create(data: { postId: number; content: string; rootId?: number; replyToUserId?: number }) {
+    return http.post('/comment', data);
   },
 
   /** 删除评论 */
@@ -22,6 +22,11 @@ export const commentApi = {
   /** 点赞评论 */
   like(id: number) {
     return http.post(`/comment/${id}/like`);
+  },
+
+  /** 取消点赞评论 */
+  deleteLike(id: number) {
+    return http.delete(`/comment/${id}/like`);
   },
 };
 

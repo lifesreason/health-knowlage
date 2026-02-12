@@ -33,14 +33,15 @@
 import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
+import { adminLogin } from '@/api/auth';
 
 const router = useRouter();
 const formRef = ref<FormInstance>();
 const loading = ref(false);
 
 const loginForm = reactive({
-  username: 'admin',
-  password: 'admin123',
+  username: '',
+  password: '',
 });
 
 const rules: FormRules = {
@@ -56,15 +57,15 @@ const handleLogin = async () => {
       loading.value = true;
       
       try {
-        // 模拟登录
-        if (loginForm.username === 'admin' && loginForm.password === 'admin123') {
-          localStorage.setItem('token', 'admin-token');
-          localStorage.setItem('username', loginForm.username);
-          ElMessage.success('登录成功');
-          router.push('/');
-        } else {
-          ElMessage.error('用户名或密码错误');
-        }
+        const res = await adminLogin({
+          username: loginForm.username,
+          password: loginForm.password,
+        });
+        localStorage.setItem('token', res.accessToken);
+        localStorage.setItem('refreshToken', res.refreshToken || '');
+        localStorage.setItem('username', loginForm.username);
+        ElMessage.success('登录成功');
+        router.push('/');
       } catch (error) {
         ElMessage.error('登录失败');
       } finally {

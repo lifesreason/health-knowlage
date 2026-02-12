@@ -5,4 +5,5 @@ export * from './circle.entity';
 export * from './post.entity';
 export * from './comment.entity';
 export * from './like.entity';
+export * from './collect.entity';
 export * from './audit-log.entity';

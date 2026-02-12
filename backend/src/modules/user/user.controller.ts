@@ -2,6 +2,9 @@ import { Controller, Get, Put, Delete, Body, Query, Param, UseGuards, Request } 
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @ApiTags('user')
 @Controller('user')
@@ -12,6 +15,9 @@ export class UserController {
    * 获取用户列表（管理后台）
    */
   @Get('list')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(9)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '获取用户列表' })
   @ApiQuery({ name: 'page', required: false, description: '页码' })
   @ApiQuery({ name: 'pageSize', required: false, description: '每页数量' })
@@ -32,6 +38,9 @@ export class UserController {
    * 获取用户统计（管理后台）
    */
   @Get('stats')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(9)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '获取用户统计' })
   async getAdminStats() {
     return this.userService.getAdminStats();
@@ -69,12 +78,8 @@ export class UserController {
   @ApiBearerAuth()
   @ApiOperation({ summary: '更新用户信息' })
   @ApiResponse({ status: 200, description: '更新成功' })
-  async updateProfile(@Request() req, @Body() body: {
-    nickname?: string;
-    avatarUrl?: string;
-    fontScale?: number;
-  }) {
-    const user = await this.userService.updateUser(req.user.id, body);
+  async updateProfile(@Request() req, @Body() body: UpdateProfileDto) {
+    const user = await this.userService.updateProfile(req.user.id, body);
     return {
       id: user.id,
       nickname: user.nickname,
@@ -85,11 +90,54 @@ export class UserController {
   }
 
   /**
+   * 获取我的统计数据
+   */
+  @Get('my-stats')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取我的统计数据' })
+  async getMyStats(@Request() req) {
+    return this.userService.getUserStats(req.user.id);
+  }
+
+  /**
+   * 获取我的收藏列表
+   */
+  @Get('collections')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取我的收藏列表' })
+  @ApiQuery({ name: 'page', required: false, description: '页码' })
+  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量' })
+  async getCollections(
+    @Request() req,
+    @Query('page') page: number = 1,
+    @Query('pageSize') pageSize: number = 10,
+  ) {
+    return this.userService.getCollections(req.user.id, { page, pageSize });
+  }
+
+  /**
    * 删除用户（管理后台）
    */
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(9)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '删除用户' })
   async deleteUser(@Param('id') id: string) {
     return this.userService.deleteUser(+id);
+  }
+
+  /**
+   * 更新用户状态（管理后台）
+   */
+  @Put(':id/status')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(9)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '更新用户状态' })
+  async updateUserStatus(@Param('id') id: string, @Body() body: { status: number }) {
+    return this.userService.updateUserStatus(+id, body.status);
   }
 }

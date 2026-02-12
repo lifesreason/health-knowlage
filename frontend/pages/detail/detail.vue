@@ -162,7 +162,11 @@ const handleLike = async () => {
   article.value.isLiked = !article.value.isLiked;
   article.value.likeCount += article.value.isLiked ? 1 : -1;
   try {
-    await interactionApi.like({ targetId: article.value.id, targetType: 'post' });
+    if (article.value.isLiked) {
+      await interactionApi.like({ targetId: article.value.id, targetType: 'post' });
+    } else {
+      await interactionApi.unlike({ targetId: article.value.id, targetType: 'post' });
+    }
   } catch {
     article.value.isLiked = !article.value.isLiked;
     article.value.likeCount += article.value.isLiked ? 1 : -1;
@@ -172,10 +176,16 @@ const handleLike = async () => {
 const handleCollect = async () => {
   if (!userStore.requireLogin() || !article.value) return;
   article.value.isCollected = !article.value.isCollected;
+  article.value.collectCount = (article.value.collectCount || 0) + (article.value.isCollected ? 1 : -1);
   try {
-    await interactionApi.collect({ targetId: article.value.id, targetType: 'post' });
+    if (article.value.isCollected) {
+      await interactionApi.collect({ targetId: article.value.id, targetType: 'post' });
+    } else {
+      await interactionApi.uncollect({ targetId: article.value.id, targetType: 'post' });
+    }
   } catch {
     article.value.isCollected = !article.value.isCollected;
+    article.value.collectCount = (article.value.collectCount || 0) + (article.value.isCollected ? 1 : -1);
   }
 };
 

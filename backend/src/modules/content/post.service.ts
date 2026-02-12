@@ -42,6 +42,7 @@ export class PostService {
       viewCount: 0,
       likeCount: 0,
       commentCount: 0,
+      collectCount: 0,
       auditStatus: 0, // 审核中
     });
 
@@ -166,6 +167,36 @@ export class PostService {
 
     const [list, total] = await queryBuilder.getManyAndCount();
 
+    return {
+      list,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  /**
+   * 搜索帖子
+   */
+  async searchPosts(params: { keyword: string; page: number; pageSize: number }) {
+    const { keyword, page, pageSize } = params;
+    const skip = (page - 1) * pageSize;
+
+    const queryBuilder = this.postRepository
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.user', 'user')
+      .leftJoinAndSelect('post.circle', 'circle')
+      .where('post.isDeleted = false')
+      .andWhere('post.auditStatus = 1')
+      .andWhere('(post.title LIKE :keyword OR post.content LIKE :keyword)', {
+        keyword: `%${keyword}%`,
+      })
+      .orderBy('post.createdAt', 'DESC')
+      .skip(skip)
+      .take(pageSize);
+
+    const [list, total] = await queryBuilder.getManyAndCount();
     return {
       list,
       total,
@@ -306,6 +337,7 @@ export class PostService {
       viewCount: 0,
       likeCount: 0,
       commentCount: 0,
+      collectCount: 0,
       auditStatus: 1, // 管理员发布直接通过
     });
 
