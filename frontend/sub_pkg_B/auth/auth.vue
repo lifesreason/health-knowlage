@@ -8,7 +8,7 @@
     </view>
 
     <!-- 头部信息 -->
-    <view class="auth-header">
+    <view class="auth-header" :style="{ paddingTop: (statusBarHeight + 60) + 'px' }">
       <view class="logo-wrap">
         <text class="logo-emoji">🏥</text>
       </view>
@@ -98,6 +98,12 @@ import { storeToRefs } from 'pinia';
 const themeStore = useThemeStore();
 const userStore = useUserStore();
 const { fontScale } = storeToRefs(themeStore);
+
+const statusBarHeight = ref(0);
+try {
+  const sysInfo = uni.getSystemInfoSync();
+  statusBarHeight.value = sysInfo.statusBarHeight || 20;
+} catch { statusBarHeight.value = 20; }
 
 const step = ref<'login' | 'bind'>('login');
 const phone = ref('');
