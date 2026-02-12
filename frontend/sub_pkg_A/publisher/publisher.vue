@@ -199,13 +199,13 @@ const handlePublish = async () => {
     if (publishType.value === 'image') {
       for (const path of formData.value.mediaUrls) {
         const policyRes = await postApi.getOssPolicy({ fileType: 'image' });
-        const url = await postApi.uploadToOss(policyRes.url || '', policyRes, path);
-        uploadedUrls.push(url);
+        const url = await postApi.uploadToOss(policyRes, path);
+        uploadedUrls.push(url as string);
       }
     } else if (formData.value.videoUrl) {
       const policyRes = await postApi.getOssPolicy({ fileType: 'video' });
-      const url = await postApi.uploadToOss(policyRes.url || '', policyRes, formData.value.videoUrl);
-      uploadedUrls.push(url);
+      const url = await postApi.uploadToOss(policyRes, formData.value.videoUrl);
+      uploadedUrls.push(url as string);
     }
 
     await postApi.publish({

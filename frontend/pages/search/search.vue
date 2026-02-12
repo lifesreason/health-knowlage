@@ -115,6 +115,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { onLoad } from '@dcloudio/uni-app';
 import { useThemeStore } from '@/store/theme';
 import { storeToRefs } from 'pinia';
 import { postApi } from '@/api';
@@ -213,6 +214,13 @@ const goBack = () => {
 };
 
 onMounted(() => loadHistory());
+
+onLoad((options: any) => {
+  const kw = options?.keyword ? decodeURIComponent(options.keyword) : '';
+  if (!kw) return;
+  keyword.value = kw;
+  doSearch();
+});
 </script>
 
 <style lang="scss" scoped>

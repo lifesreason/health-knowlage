@@ -18,10 +18,8 @@ export const interactionApi = {
 
   unlike(data: { targetId: number; targetType: 'post' | 'comment' }) {
     return http.delete('/interaction/like', {
-      data: {
-        targetId: data.targetId,
-        targetType: this.toTargetType(data.targetType),
-      },
+      targetId: data.targetId,
+      targetType: this.toTargetType(data.targetType),
     });
   },
 
@@ -35,10 +33,8 @@ export const interactionApi = {
 
   uncollect(data: { targetId: number; targetType: 'post' }) {
     return http.delete('/interaction/collect', {
-      data: {
-        targetId: data.targetId,
-        targetType: this.toTargetType(data.targetType),
-      },
+      targetId: data.targetId,
+      targetType: this.toTargetType(data.targetType),
     });
   },
 
@@ -55,6 +51,18 @@ export const interactionApi = {
   /** 获取我的粉丝列表 */
   getFollowers(params: { page: number; pageSize: number }) {
     return http.get('/interaction/followers', { params });
+  },
+
+  /** 获取单个帖子互动状态 */
+  getPostStatus(postId: number) {
+    return http.get('/interaction/post-status', { params: { postId } });
+  },
+
+  /** 批量获取帖子互动状态 */
+  getPostBatchStatus(postIds: number[]) {
+    return http.get('/interaction/post-status/batch', {
+      params: { postIds: postIds.join(',') },
+    });
   },
 };
 

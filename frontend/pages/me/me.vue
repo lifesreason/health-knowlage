@@ -64,25 +64,25 @@
       <view class="quick-grid">
         <view class="quick-item" @click="goToMyPosts">
           <view class="quick-icon-wrapper" style="background: linear-gradient(135deg, #74b9ff, #0984e3)">
-            <text class="quick-icon">📝</text>
+            <text class="quick-icon">文</text>
           </view>
           <text class="quick-text" :style="{ fontSize: `calc(13px * ${fontScale})` }">我的发布</text>
         </view>
         <view class="quick-item" @click="goToCollections">
           <view class="quick-icon-wrapper" style="background: linear-gradient(135deg, #ffeaa7, #fdcb6e)">
-            <text class="quick-icon">⭐</text>
+            <text class="quick-icon">藏</text>
           </view>
           <text class="quick-text" :style="{ fontSize: `calc(13px * ${fontScale})` }">我的收藏</text>
         </view>
         <view class="quick-item" @click="goToHistory">
           <view class="quick-icon-wrapper" style="background: linear-gradient(135deg, #a29bfe, #6c5ce7)">
-            <text class="quick-icon">📖</text>
+            <text class="quick-icon">迹</text>
           </view>
           <text class="quick-text" :style="{ fontSize: `calc(13px * ${fontScale})` }">浏览历史</text>
         </view>
         <view class="quick-item" @click="goToCircles">
           <view class="quick-icon-wrapper" style="background: linear-gradient(135deg, #55efc4, #00b894)">
-            <text class="quick-icon">🏠</text>
+            <text class="quick-icon">圈</text>
           </view>
           <text class="quick-text" :style="{ fontSize: `calc(13px * ${fontScale})` }">我的圈子</text>
         </view>
@@ -94,7 +94,7 @@
       <view class="settings-group">
         <view class="settings-item" @click="goToFontSettings">
           <view class="item-left">
-            <text class="item-icon">🔤</text>
+            <text class="item-icon">A</text>
             <text class="item-text" :style="{ fontSize: `calc(15px * ${fontScale})` }">字体大小</text>
           </view>
           <view class="item-right">
@@ -103,19 +103,19 @@
           </view>
         </view>
         
-        <view class="settings-item" @click="contactService">
+        <button class="settings-item settings-contact-btn" open-type="contact" @click="contactService">
           <view class="item-left">
-            <text class="item-icon">💬</text>
+            <text class="item-icon">客</text>
             <text class="item-text" :style="{ fontSize: `calc(15px * ${fontScale})` }">联系客服</text>
           </view>
           <view class="item-right">
             <text class="item-arrow">›</text>
           </view>
-        </view>
+        </button>
         
         <view class="settings-item" @click="goToAbout">
           <view class="item-left">
-            <text class="item-icon">ℹ️</text>
+            <text class="item-icon">i</text>
             <text class="item-text" :style="{ fontSize: `calc(15px * ${fontScale})` }">关于我们</text>
           </view>
           <view class="item-right">
@@ -184,6 +184,7 @@ const goToMyPosts = () => {
 
 // 跳转浏览历史
 const goToHistory = () => {
+  if (!userStore.requireLogin()) return;
   uni.navigateTo({ url: '/sub_pkg_B/settings/settings?tab=history' });
 };
 
@@ -207,7 +208,18 @@ const goToStats = (type: string) => {
 
 // 联系客服
 const contactService = () => {
-  // 使用微信客服
+  if (typeof wx !== 'undefined') return;
+  uni.showActionSheet({
+    itemList: ['在线客服', '复制客服邮箱'],
+    success: (res) => {
+      if (res.tapIndex === 1) {
+        uni.setClipboardData({
+          data: 'support@silverhealth.local',
+          success: () => uni.showToast({ title: '已复制客服邮箱', icon: 'none' }),
+        });
+      }
+    },
+  });
 };
 
 // 跳转字体设置
@@ -427,7 +439,9 @@ onShow(() => {
 }
 
 .quick-icon {
-  font-size: 40rpx;
+  font-size: 28rpx;
+  color: #fff;
+  font-weight: 700;
 }
 
 .quick-text {
@@ -465,7 +479,16 @@ onShow(() => {
 }
 
 .item-icon {
-  font-size: 40rpx;
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 12rpx;
+  background: #f6efe9;
+  color: #c5664d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  font-weight: 700;
 }
 
 .item-text {
@@ -485,6 +508,18 @@ onShow(() => {
 .item-arrow {
   font-size: 32rpx;
   color: #ccc;
+}
+
+.settings-contact-btn {
+  width: 100%;
+  border: none;
+  background: #fff;
+  text-align: left;
+  border-radius: 0;
+
+  &::after {
+    border: none;
+  }
 }
 
 // 退出登录

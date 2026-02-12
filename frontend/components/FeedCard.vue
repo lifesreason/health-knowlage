@@ -44,15 +44,15 @@
     <!-- 卡片底部 - 互动数据 -->
     <view class="card-footer">
       <view class="action-item" @click.stop="$emit('like', item)">
-        <text class="action-icon" :class="{ active: item.isLiked }">{{ item.isLiked ? '❤️' : '🤍' }}</text>
+        <text class="action-icon" :class="{ active: item.isLiked }">赞</text>
         <text class="action-text" :style="{ fontSize: `calc(12px * ${fontScale})` }">{{ formatNumber(item.likeCount || 0) }}</text>
       </view>
       <view class="action-item">
-        <text class="action-icon">💬</text>
+        <text class="action-icon">评</text>
         <text class="action-text" :style="{ fontSize: `calc(12px * ${fontScale})` }">{{ formatNumber(item.commentCount || 0) }}</text>
       </view>
       <view class="action-item">
-        <text class="action-icon">👁️</text>
+        <text class="action-icon">阅</text>
         <text class="action-text" :style="{ fontSize: `calc(12px * ${fontScale})` }">{{ formatNumber(item.viewCount || 0) }}</text>
       </view>
     </view>
@@ -260,10 +260,21 @@ const formatDuration = (seconds: number) => {
 }
 
 .action-icon {
-  font-size: 32rpx;
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 10rpx;
+  background: #f5f5f5;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20rpx;
+  font-weight: 700;
   transition: transform 0.2s ease;
-  
+
   &.active {
+    background: #ffe9e2;
+    color: #d25f45;
     animation: pulse 0.3s ease;
   }
 }

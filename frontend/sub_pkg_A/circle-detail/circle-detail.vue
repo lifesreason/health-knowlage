@@ -136,7 +136,27 @@ const loadPosts = async () => {
   loading.value = true;
   try {
     const res = await circleApi.getPosts(circleId.value, { page: page.value, pageSize: 10 });
-    const data = res.list || [];
+    const data = (res.list || []).map((item: any) => ({
+      ...item,
+      isLiked: !!item.isLiked,
+      isCollected: !!item.isCollected,
+    }));
+
+    if (userStore.isLoggedIn && data.length) {
+      try {
+        const statusRes = await interactionApi.getPostBatchStatus(data.map((item: any) => item.id));
+        const statusMap = new Map((statusRes.list || []).map((item: any) => [item.postId, item]));
+        data.forEach((item: any) => {
+          const status = statusMap.get(item.id);
+          if (!status) return;
+          item.isLiked = !!status.isLiked;
+          item.isCollected = !!status.isCollected;
+        });
+      } catch {
+        // 忽略状态补齐失败
+      }
+    }
+
     if (page.value === 1) posts.value = data;
     else posts.value.push(...data);
     if (data.length < 10) noMore.value = true;

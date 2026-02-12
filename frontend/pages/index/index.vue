@@ -6,18 +6,18 @@
       <view class="greeting-row">
         <view class="greeting-text">
           <text class="greeting-label">银龄健康</text>
-          <text class="greeting-sub">为您的健康保驾护航 💚</text>
+          <text class="greeting-sub">为您的健康保驾护航</text>
         </view>
         <view class="header-actions">
           <view class="action-btn" @click="goToSearch">
-            <text class="action-icon">🔍</text>
+            <text class="action-icon">搜</text>
           </view>
         </view>
       </view>
       
       <!-- 搜索栏 -->
       <view class="search-bar" @click="goToSearch">
-        <text class="search-icon">🔍</text>
+        <text class="search-icon">⌕</text>
         <text class="search-placeholder" :style="{ fontSize: `calc(14px * ${fontScale})` }">搜索健康知识、医师、圈子...</text>
       </view>
     </view>
@@ -99,7 +99,7 @@
 
     <!-- 发布按钮 -->
     <view class="publish-btn" @click="goToPublish">
-      <text class="publish-icon">✍️</text>
+      <text class="publish-icon">发</text>
     </view>
   </view>
 </template>
@@ -194,13 +194,34 @@ const loadFeed = async (refresh = false) => {
       });
     }
 
-    if (refresh) {
-      feedList.value = res.list || [];
-    } else {
-      feedList.value.push(...(res.list || []));
+    const mergedList = (res.list || []).map((item: any) => ({
+      ...item,
+      isLiked: !!item.isLiked,
+      isCollected: !!item.isCollected,
+    }));
+
+    if (userStore.isLoggedIn && mergedList.length) {
+      try {
+        const statusRes = await interactionApi.getPostBatchStatus(mergedList.map((item: any) => item.id));
+        const statusMap = new Map((statusRes.list || []).map((item: any) => [item.postId, item]));
+        mergedList.forEach((item: any) => {
+          const status = statusMap.get(item.id);
+          if (!status) return;
+          item.isLiked = !!status.isLiked;
+          item.isCollected = !!status.isCollected;
+        });
+      } catch {
+        // 忽略状态补齐失败
+      }
     }
 
-    noMore.value = (res.list || []).length < pageSize;
+    if (refresh) {
+      feedList.value = mergedList;
+    } else {
+      feedList.value.push(...mergedList);
+    }
+
+    noMore.value = mergedList.length < pageSize;
   } catch (error) {
     console.error('加载失败', error);
     uni.showToast({ title: '加载失败', icon: 'none' });
@@ -333,7 +354,9 @@ onReachBottom(() => {
 }
 
 .action-icon {
-  font-size: 36rpx;
+  font-size: 28rpx;
+  color: #e17055;
+  font-weight: 700;
 }
 
 // 搜索栏
@@ -350,7 +373,8 @@ onReachBottom(() => {
 }
 
 .search-icon {
-  font-size: 32rpx;
+  font-size: 28rpx;
+  color: #b17866;
 }
 
 .search-placeholder {
@@ -539,6 +563,8 @@ onReachBottom(() => {
 }
 
 .publish-icon {
-  font-size: 44rpx;
+  font-size: 32rpx;
+  color: #fff;
+  font-weight: 700;
 }
 </style>

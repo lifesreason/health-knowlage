@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Like } from '../../entities/like.entity';
 import { Collect } from '../../entities/collect.entity';
 import { Follow } from '../../entities/follow.entity';
@@ -255,6 +255,106 @@ export class InteractionService {
       page,
       pageSize,
       totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  /**
+   * 获取单个帖子互动状态
+   */
+  async getPostStatus(userId: number, postId: number) {
+    const post = await this.postRepository.findOne({
+      where: { id: postId, isDeleted: false, auditStatus: 1 },
+      select: ['id', 'userId'],
+    });
+
+    if (!post) {
+      throw new NotFoundException('帖子不存在');
+    }
+
+    const [liked, collected, followed] = await Promise.all([
+      this.likeRepository.findOne({
+        where: { userId, targetId: postId, targetType: 1 },
+        select: ['id'],
+      }),
+      this.collectRepository.findOne({
+        where: { userId, targetId: postId, targetType: 1 },
+        select: ['id'],
+      }),
+      this.followRepository.findOne({
+        where: { userId, followUserId: post.userId },
+        select: ['id'],
+      }),
+    ]);
+
+    return {
+      postId,
+      isLiked: !!liked,
+      isCollected: !!collected,
+      isFollowedAuthor: !!followed,
+    };
+  }
+
+  /**
+   * 批量获取帖子互动状态
+   */
+  async getPostBatchStatus(userId: number, postIds: number[]) {
+    const uniquePostIds = [...new Set(postIds)].filter((id) => Number.isFinite(id) && id > 0);
+    if (!uniquePostIds.length) {
+      return { list: [] };
+    }
+
+    const posts = await this.postRepository.find({
+      where: {
+        id: In(uniquePostIds),
+        isDeleted: false,
+        auditStatus: 1,
+      },
+      select: ['id', 'userId'],
+    });
+    if (!posts.length) {
+      return { list: [] };
+    }
+
+    const validPostIds = posts.map((item) => item.id);
+    const authorIds = [...new Set(posts.map((item) => item.userId))];
+
+    const [likes, collects, follows] = await Promise.all([
+      this.likeRepository.find({
+        where: {
+          userId,
+          targetType: 1,
+          targetId: In(validPostIds),
+        },
+        select: ['targetId'],
+      }),
+      this.collectRepository.find({
+        where: {
+          userId,
+          targetType: 1,
+          targetId: In(validPostIds),
+        },
+        select: ['targetId'],
+      }),
+      this.followRepository.find({
+        where: {
+          userId,
+          followUserId: In(authorIds),
+        },
+        select: ['followUserId'],
+      }),
+    ]);
+
+    const likedSet = new Set(likes.map((item) => item.targetId));
+    const collectedSet = new Set(collects.map((item) => item.targetId));
+    const followedSet = new Set(follows.map((item) => item.followUserId));
+
+    return {
+      list: posts.map((post) => ({
+        postId: post.id,
+        isLiked: likedSet.has(post.id),
+        isCollected: collectedSet.has(post.id),
+        isFollowedAuthor: followedSet.has(post.userId),
+      })),
     };
   }
 }

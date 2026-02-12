@@ -13,15 +13,15 @@
     <!-- 空状态 -->
     <view v-else-if="videoList.length === 0" class="state-container" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="empty-wrap">
-        <text class="empty-icon">🎬</text>
+        <text class="empty-icon">视</text>
         <text class="empty-title" :style="{ fontSize: `calc(18px * ${fontScale})` }">暂无视频内容</text>
-        <text class="empty-desc" :style="{ fontSize: `calc(14px * ${fontScale})` }">精彩健康视频即将上线，敬请期待</text>
+        <text class="empty-desc" :style="{ fontSize: `calc(14px * ${fontScale})` }">暂未检索到视频，可刷新后重试</text>
         <view class="empty-actions">
           <button class="refresh-btn" @click="loadVideos" :style="{ fontSize: `calc(15px * ${fontScale})` }">
-            🔄 刷新试试
+            刷新试试
           </button>
           <button class="home-btn" @click="goHome" :style="{ fontSize: `calc(15px * ${fontScale})` }">
-            🏠 去首页逛逛
+            去首页逛逛
           </button>
         </view>
       </view>
@@ -102,33 +102,33 @@
             </view>
             <view class="sidebar-item" @click="handleLike(item)">
               <view class="icon-wrapper" :class="{ active: item.isLiked }">
-                <text class="sidebar-icon">{{ item.isLiked ? '❤️' : '🤍' }}</text>
+                <text class="sidebar-icon">赞</text>
               </view>
               <text class="sidebar-count" :style="{ fontSize: `calc(12px * ${fontScale})` }">{{ formatNumber(item.likeCount) }}</text>
             </view>
             <view class="sidebar-item" @click="openComments(item)">
               <view class="icon-wrapper">
-                <text class="sidebar-icon">💬</text>
+                <text class="sidebar-icon">评</text>
               </view>
               <text class="sidebar-count" :style="{ fontSize: `calc(12px * ${fontScale})` }">{{ formatNumber(item.commentCount) }}</text>
             </view>
             <view class="sidebar-item" @click="handleCollect(item)">
               <view class="icon-wrapper" :class="{ active: item.isCollected }">
-                <text class="sidebar-icon">{{ item.isCollected ? '⭐' : '☆' }}</text>
+                <text class="sidebar-icon">藏</text>
               </view>
               <text class="sidebar-count" :style="{ fontSize: `calc(12px * ${fontScale})` }">{{ formatNumber(item.collectCount || 0) }}</text>
             </view>
             <view class="sidebar-item">
               <button class="share-btn" open-type="share">
                 <view class="icon-wrapper">
-                  <text class="sidebar-icon">📤</text>
+                  <text class="sidebar-icon">享</text>
                 </view>
               </button>
               <text class="sidebar-count" :style="{ fontSize: `calc(12px * ${fontScale})` }">分享</text>
             </view>
             <view class="sidebar-item" @click="handlePoster(item)">
               <view class="icon-wrapper">
-                <text class="sidebar-icon">🖼</text>
+                <text class="sidebar-icon">报</text>
               </view>
               <text class="sidebar-count" :style="{ fontSize: `calc(12px * ${fontScale})` }">海报</text>
             </view>
@@ -235,7 +235,29 @@ const loadVideos = async () => {
       ...item,
       author: item.author || item.user,
       isFollowed: !!item.author?.isFollowed || !!item.user?.isFollowed,
+      isLiked: !!item.isLiked,
+      isCollected: !!item.isCollected,
     }));
+
+    if (userStore.isLoggedIn && videoList.value.length) {
+      try {
+        const statusRes = await interactionApi.getPostBatchStatus(videoList.value.map((item: any) => item.id));
+        const statusMap = new Map((statusRes.list || []).map((item: any) => [item.postId, item]));
+        videoList.value = videoList.value.map((item: any) => {
+          const status = statusMap.get(item.id);
+          if (!status) return item;
+          return {
+            ...item,
+            isLiked: !!status.isLiked,
+            isCollected: !!status.isCollected,
+            isFollowed: !!status.isFollowedAuthor,
+          };
+        });
+      } catch {
+        // 忽略状态补齐失败，保持主列表可用
+      }
+    }
+
     if (userStore.isLoggedIn && videoList.value[0]?.id) {
       userApi.recordHistory({ postId: videoList.value[0].id }).catch(() => {});
     }
@@ -320,8 +342,9 @@ const handleCollect = async (item: any) => {
 const openComments = (_item: any) => { showComments.value = true; };
 
 const goToProfile = (author: any) => {
-  if (!author?.id) return;
-  uni.navigateTo({ url: `/pages/detail/detail?userId=${author.id}` });
+  const nickname = author?.nickname;
+  if (!nickname) return;
+  uni.navigateTo({ url: `/pages/search/search?keyword=${encodeURIComponent(nickname)}` });
 };
 
 const handleFollow = async (item: any) => {
@@ -442,7 +465,19 @@ onHide(() => {
   padding: 0 80rpx;
 }
 
-.empty-icon { font-size: 120rpx; margin-bottom: 32rpx; }
+.empty-icon {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 30rpx;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 56rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 32rpx;
+}
 .empty-title { color: #fff; font-weight: 700; margin-bottom: 16rpx; }
 .empty-desc { color: rgba(255, 255, 255, 0.5); text-align: center; margin-bottom: 56rpx; }
 
@@ -595,7 +630,11 @@ onHide(() => {
   &.active { background: rgba(225, 112, 85, 0.3); transform: scale(1.1); }
 }
 
-.sidebar-icon { font-size: 44rpx; }
+.sidebar-icon {
+  font-size: 30rpx;
+  color: #fff;
+  font-weight: 700;
+}
 .sidebar-count { color: #fff; text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.5); }
 
 .share-btn {

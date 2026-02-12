@@ -11,9 +11,9 @@
         <view v-else-if="comments.length === 0" class="empty">暂无评论，快来抢沙发</view>
         <view v-else>
           <view v-for="item in comments" :key="item.id" class="comment-item">
-            <image class="avatar" :src="item.author.avatar" mode="aspectFill"></image>
+            <image class="avatar" :src="item.user?.avatarUrl || item.author?.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
             <view class="comment-content">
-              <text class="author-name">{{ item.author.nickname }}</text>
+              <text class="author-name">{{ item.user?.nickname || item.author?.nickname || '用户' }}</text>
               <text class="comment-text">{{ item.content }}</text>
               <view class="comment-meta">
                 <text class="time">{{ formatTime(item.createdAt) }}</text>
@@ -56,7 +56,11 @@ const loadComments = async () => {
   loading.value = true;
   try {
     const res = await commentApi.getList({ postId: props.postId, page: page.value, pageSize: 10 });
-    const data = res.list || [];
+    const data = (res.list || []).map((item: any) => ({
+      ...item,
+      isLiked: !!item.isLiked,
+      user: item.user || item.author || {},
+    }));
     if (page.value === 1) comments.value = data;
     else comments.value.push(...data);
     if (data.length < 10) noMore.value = true;
@@ -95,7 +99,17 @@ const submitComment = async () => {
       postId: props.postId,
       content: inputText.value,
     });
-    comments.value.unshift(res);
+    comments.value.unshift({
+      id: res.id,
+      content: inputText.value,
+      createdAt: res.createdAt || new Date().toISOString(),
+      likeCount: 0,
+      isLiked: false,
+      user: {
+        avatarUrl: userStore.userInfo?.avatarUrl || '/static/default-avatar.png',
+        nickname: userStore.userInfo?.nickname || '我',
+      },
+    });
     inputText.value = '';
     uni.showToast({ title: '评论成功', icon: 'success' });
   } catch {

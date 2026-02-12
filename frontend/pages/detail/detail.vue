@@ -11,7 +11,7 @@
       <!-- 顶部圈子标签 -->
       <view class="circle-header" v-if="article.circle">
         <view class="circle-tag">
-          <text class="circle-icon">📚</text>
+          <text class="circle-icon">圈</text>
           <text class="circle-name">{{ article.circle.name }}</text>
         </view>
       </view>
@@ -35,7 +35,7 @@
             <text class="view-count">· {{ article.viewCount || 0 }} 阅读</text>
           </view>
         </view>
-        <view class="follow-btn" @click="handleFollow">
+        <view class="follow-btn" :class="{ followed: article.user?.isFollowed }" @click="handleFollow">
           <text>{{ article.user?.isFollowed ? '已关注' : '关注' }}</text>
         </view>
       </view>
@@ -98,21 +98,21 @@
       </view>
       <view class="action-btns">
         <view class="action-btn" :class="{ active: article.isLiked }" @click="handleLike">
-          <text class="action-icon">{{ article.isLiked ? '❤️' : '🤍' }}</text>
+          <text class="action-icon">{{ article.isLiked ? '赞' : '赞' }}</text>
           <text class="action-num">{{ article.likeCount || '' }}</text>
         </view>
         <view class="action-btn" @click="showComments = true">
-          <text class="action-icon">💬</text>
+          <text class="action-icon">评</text>
           <text class="action-num">{{ article.commentCount || '' }}</text>
         </view>
         <view class="action-btn" :class="{ active: article.isCollected }" @click="handleCollect">
-          <text class="action-icon">{{ article.isCollected ? '⭐' : '☆' }}</text>
+          <text class="action-icon">藏</text>
         </view>
         <button class="action-btn share-btn" open-type="share">
-          <text class="action-icon">📤</text>
+          <text class="action-icon">享</text>
         </button>
         <view class="action-btn" @click="handlePoster">
-          <text class="action-icon">🖼</text>
+          <text class="action-icon">报</text>
         </view>
       </view>
     </view>
@@ -163,10 +163,27 @@ const loadArticle = async () => {
         ...res.user,
         isFollowed: !!res.user?.isFollowed,
       },
+      isLiked: !!res.isLiked,
+      isCollected: !!res.isCollected,
     };
 
     if (userStore.isLoggedIn) {
+      interactionApi
+        .getPostStatus(articleId.value)
+        .then((status) => {
+          if (!article.value) return;
+          article.value.isLiked = !!status.isLiked;
+          article.value.isCollected = !!status.isCollected;
+          article.value.user = {
+            ...(article.value.user || {}),
+            isFollowed: !!status.isFollowedAuthor,
+          };
+        })
+        .catch(() => undefined);
       userApi.recordHistory({ postId: articleId.value }).catch(() => {});
+    } else {
+      article.value.isLiked = false;
+      article.value.isCollected = false;
     }
   } catch (error) {
     console.error('加载文章失败', error);
@@ -321,7 +338,16 @@ onLoad((options: any) => {
 }
 
 .circle-icon {
-  font-size: 28rpx;
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 8rpx;
+  font-size: 20rpx;
+  color: #fff;
+  font-weight: 700;
+  background: #e17055;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .circle-name {
@@ -391,6 +417,12 @@ onLoad((options: any) => {
   font-size: calc(13px * var(--font-scale));
   font-weight: 500;
   box-shadow: 0 8rpx 24rpx rgba(225, 112, 85, 0.3);
+
+  &.followed {
+    background: #f5f5f5;
+    color: #666;
+    box-shadow: none;
+  }
 }
 
 // 分割线
@@ -582,14 +614,26 @@ onLoad((options: any) => {
   }
   
   &.active {
+    background: #fff1ec;
+    border-radius: 24rpx;
     .action-icon {
       transform: scale(1.1);
+      color: #d26045;
     }
   }
 }
 
 .action-icon {
-  font-size: 44rpx;
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 12rpx;
+  background: #f3f3f3;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #555;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: transform 0.2s ease;
 }
 

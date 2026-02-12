@@ -31,14 +31,32 @@ export const postApi = {
   },
 
   /** 上传文件到 OSS */
-  uploadToOss(url: string, formData: Record<string, any>, filePath: string) {
+  uploadToOss(policy: {
+    host: string;
+    fileName: string;
+    policy: string;
+    accessKeyId: string;
+    signature: string;
+  }, filePath: string) {
     return new Promise((resolve, reject) => {
       uni.uploadFile({
-        url,
+        url: policy.host,
         filePath,
         name: 'file',
-        formData,
-        success: (res) => resolve(res),
+        formData: {
+          key: policy.fileName,
+          policy: policy.policy,
+          OSSAccessKeyId: policy.accessKeyId,
+          signature: policy.signature,
+          success_action_status: '200',
+        },
+        success: (res) => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve(`${policy.host}/${policy.fileName}`);
+            return;
+          }
+          reject(new Error(`OSS 上传失败: ${res.statusCode}`));
+        },
         fail: (err) => reject(err),
       });
     });

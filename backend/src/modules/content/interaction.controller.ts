@@ -1,4 +1,4 @@
-import { Controller, Post, Delete, Get, Body, UseGuards, Request, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Post, Delete, Get, Body, UseGuards, Request, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { InteractionService } from './interaction.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -9,6 +9,16 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 @ApiBearerAuth()
 export class InteractionController {
   constructor(private interactionService: InteractionService) {}
+
+  private pickTarget(body: any, query: any) {
+    const targetId = body?.targetId ?? query?.targetId;
+    const targetType = body?.targetType ?? query?.targetType;
+    const parsedTargetId = Number(targetId);
+    if (!parsedTargetId) {
+      throw new BadRequestException('targetId 不能为空');
+    }
+    return { targetId: parsedTargetId, targetType };
+  }
 
   /**
    * 点赞
@@ -32,8 +42,9 @@ export class InteractionController {
   async unlike(@Request() req, @Body() body: {
     targetId: number;
     targetType: number;
-  }) {
-    return this.interactionService.unlike(req.user.id, body.targetId, body.targetType);
+  }, @Query() query) {
+    const target = this.pickTarget(body, query);
+    return this.interactionService.unlike(req.user.id, target.targetId, target.targetType);
   }
 
   /**
@@ -58,8 +69,9 @@ export class InteractionController {
   async uncollect(@Request() req, @Body() body: {
     targetId: number;
     targetType: number;
-  }) {
-    return this.interactionService.uncollect(req.user.id, body.targetId, body.targetType);
+  }, @Query() query) {
+    const target = this.pickTarget(body, query);
+    return this.interactionService.uncollect(req.user.id, target.targetId, target.targetType);
   }
 
   /**
@@ -100,5 +112,35 @@ export class InteractionController {
     @Query('pageSize') pageSize: number = 10,
   ) {
     return this.interactionService.getFollowers(req.user.id, { page, pageSize });
+  }
+
+  /**
+   * 获取单个帖子互动状态
+   */
+  @Get('post-status')
+  @ApiOperation({ summary: '获取单个帖子互动状态' })
+  @ApiQuery({ name: 'postId', required: true, description: '帖子ID' })
+  async getPostStatus(
+    @Request() req,
+    @Query('postId') postId: string,
+  ) {
+    return this.interactionService.getPostStatus(req.user.id, Number(postId));
+  }
+
+  /**
+   * 批量获取帖子互动状态
+   */
+  @Get('post-status/batch')
+  @ApiOperation({ summary: '批量获取帖子互动状态' })
+  @ApiQuery({ name: 'postIds', required: true, description: '帖子ID列表，英文逗号分隔' })
+  async getPostBatchStatus(
+    @Request() req,
+    @Query('postIds') postIds: string,
+  ) {
+    const ids = `${postIds || ''}`
+      .split(',')
+      .map((item) => Number(item.trim()))
+      .filter((item) => Number.isFinite(item) && item > 0);
+    return this.interactionService.getPostBatchStatus(req.user.id, ids);
   }
 }
