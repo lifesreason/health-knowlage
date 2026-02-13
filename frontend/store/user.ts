@@ -26,6 +26,14 @@ export const useUserStore = defineStore(
     const isDoctor = computed(() => userInfo.value?.role === 1);
     const isAdmin = computed(() => userInfo.value?.role === 9);
 
+    const normalizeUserInfo = (raw: any, forceMobileBound = false): UserInfo => {
+      const mobile = raw?.mobile || raw?.maskedMobile || raw?.mobileMasked;
+      return {
+        ...raw,
+        mobile: forceMobileBound ? (mobile || 'bound') : mobile,
+      } as UserInfo;
+    };
+
     // 静默登录
     const silentLogin = async () => {
       try {
@@ -51,10 +59,8 @@ export const useUserStore = defineStore(
         const res = await authApi.login({ code });
         setToken(res.accessToken);
         if (res.userInfo) {
-          setUserInfo({
-            ...res.userInfo,
-            mobile: 'bound',
-          });
+          // 微信登录阶段保留后端真实手机号状态，避免误判“已绑定”
+          setUserInfo(normalizeUserInfo(res.userInfo, false));
         } else {
           userInfo.value = null;
           uni.removeStorageSync('userInfo');
@@ -73,10 +79,7 @@ export const useUserStore = defineStore(
         const res = await authApi.bindPhone({ encryptedData, iv });
         setToken(res.accessToken);
         if (res.userInfo) {
-          setUserInfo({
-            ...res.userInfo,
-            mobile: 'bound',
-          });
+          setUserInfo(normalizeUserInfo(res.userInfo, true));
         }
         uni.setStorageSync('refreshToken', res.refreshToken || '');
         return true;
@@ -97,10 +100,7 @@ export const useUserStore = defineStore(
       const res = await authApi.bindPhoneManual({ phone, code });
       setToken(res.accessToken);
       if (res.userInfo) {
-        setUserInfo({
-          ...res.userInfo,
-          mobile: 'bound',
-        });
+        setUserInfo(normalizeUserInfo(res.userInfo, true));
       }
       uni.setStorageSync('refreshToken', res.refreshToken || '');
       return true;

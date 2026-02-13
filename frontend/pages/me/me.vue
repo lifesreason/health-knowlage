@@ -161,7 +161,15 @@ const stats = ref({
 
 // 加载用户数据
 const loadUserStats = async () => {
-  if (!userStore.isLoggedIn) return;
+  if (!userStore.isLoggedIn) {
+    stats.value = {
+      likesReceived: 0,
+      following: 0,
+      followers: 0,
+      circles: 0,
+    };
+    return;
+  }
 
   try {
     const res = await userApi.getStats();

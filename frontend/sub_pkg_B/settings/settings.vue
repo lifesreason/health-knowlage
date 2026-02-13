@@ -131,7 +131,7 @@
         <view class="section">
           <view class="profile-avatar-wrap" @click="pickAvatar">
             <image class="profile-avatar" :src="profileForm.avatarUrl || '/static/default-avatar.png'" mode="aspectFill"></image>
-            <text class="profile-avatar-tip">点击更换头像</text>
+            <text class="profile-avatar-tip">{{ avatarUploading ? '头像上传中...' : '点击更换头像' }}</text>
           </view>
           <view class="form-item">
             <text class="form-label">昵称</text>
@@ -142,8 +142,8 @@
               placeholder="请输入昵称"
             />
           </view>
-          <button class="primary-btn" @click="saveProfile" :disabled="profileSaving">
-            {{ profileSaving ? '保存中...' : '保存资料' }}
+          <button class="primary-btn" @click="saveProfile" :disabled="profileSaving || avatarUploading">
+            {{ avatarUploading ? '头像上传中...' : (profileSaving ? '保存中...' : '保存资料') }}
           </button>
         </view>
       </template>
@@ -255,14 +255,31 @@
             <template v-else>
               <text class="list-title">{{ item.title || '无标题' }}</text>
               <text class="list-desc">{{ stripHtml(item.content || '') }}</text>
+              <view class="post-metrics" v-if="currentTab === 'posts' || currentTab === 'collections' || currentTab === 'history'">
+                <text class="metric-text" :class="{ active: item.isLiked }">赞 {{ item.likeCount || 0 }}</text>
+                <text class="metric-text">评 {{ item.commentCount || 0 }}</text>
+                <text class="metric-text" :class="{ active: item.isCollected }">藏 {{ item.collectCount || 0 }}</text>
+              </view>
               <view class="list-footer">
                 <text class="list-sub">{{ formatTime(item.createdAt || item.lastViewedAt || item.collectedAt) }}</text>
                 <view class="card-actions">
                   <button
-                    v-if="currentTab === 'collections'"
-                    class="mini-btn"
-                    @click.stop="cancelCollection(item)"
-                  >取消收藏</button>
+                    v-if="canQuickInteract"
+                    class="mini-btn ghost"
+                    :class="{ active: item.isLiked }"
+                    @click.stop="togglePostLike(item)"
+                  >{{ item.isLiked ? '取消点赞' : '点赞' }}</button>
+                  <button
+                    v-if="canQuickInteract"
+                    class="mini-btn ghost"
+                    :class="{ active: item.isCollected }"
+                    @click.stop="togglePostCollect(item)"
+                  >{{ item.isCollected ? '取消收藏' : '收藏' }}</button>
+                  <button
+                    v-if="canQuickInteract"
+                    class="mini-btn ghost"
+                    @click.stop="openCommentModal(item)"
+                  >评论</button>
                   <button
                     v-if="currentTab === 'posts'"
                     class="mini-btn danger"
@@ -281,6 +298,13 @@
       <view class="safe-bottom"></view>
     </scroll-view>
 
+    <CommentModal
+      v-if="commentModalVisible && commentPostId > 0"
+      :post-id="commentPostId"
+      @close="commentModalVisible = false"
+      @submitted="handleCommentSubmitted"
+    />
+
     <view v-if="userStore.isLoggedIn" class="logout-section" @click="handleLogout">
       <text class="logout-text" :style="{ fontSize: `calc(15px * ${fontScale})` }">退出登录</text>
     </view>
@@ -295,6 +319,7 @@ import { useUserStore } from '@/store/user';
 import { storeToRefs } from 'pinia';
 import { circleApi, interactionApi, postApi, userApi } from '@/api';
 import { formatRelativeTime } from '@/common/utils';
+import CommentModal from '@/components/CommentModal.vue';
 
 const themeStore = useThemeStore();
 const userStore = useUserStore();
@@ -330,8 +355,11 @@ const cacheSize = ref('0MB');
 
 const postStatus = ref<'published' | 'audit'>('published');
 const likesStats = ref<any>({});
+const commentModalVisible = ref(false);
+const commentPostId = ref(0);
 
 const profileSaving = ref(false);
+const avatarUploading = ref(false);
 const profileForm = ref({
   nickname: '',
   avatarUrl: '',
@@ -373,6 +401,13 @@ const currentState = computed(() => {
   return tabStates[currentTab.value as ListTab];
 });
 
+const canQuickInteract = computed(
+  () =>
+    currentTab.value === 'collections' ||
+    currentTab.value === 'history' ||
+    (currentTab.value === 'posts' && postStatus.value === 'published'),
+);
+
 const formatTime = (value: string) => formatRelativeTime(value);
 
 const parseMediaUrls = (value: any): string[] => {
@@ -391,6 +426,28 @@ const stripHtml = (html: string) => {
   let text = html.replace(/<[^>]*>/g, '');
   text = text.replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
   return text.length > 80 ? `${text.slice(0, 80)}...` : text;
+};
+
+const patchPostStatuses = async (list: any[]) => {
+  if (!userStore.isLoggedIn || !list.length) return list;
+  const ids = list.map((item) => Number(item.id)).filter((id) => Number.isFinite(id) && id > 0);
+  if (!ids.length) return list;
+
+  try {
+    const statusRes = await interactionApi.getPostBatchStatus(ids);
+    const statusMap = new Map((statusRes.list || []).map((item: any) => [item.postId, item]));
+    return list.map((item) => {
+      const status = statusMap.get(Number(item.id));
+      if (!status) return item;
+      return {
+        ...item,
+        isLiked: !!status.isLiked,
+        isCollected: !!status.isCollected,
+      };
+    });
+  } catch {
+    return list;
+  }
 };
 
 const normalizeTab = (tab?: string) => {
@@ -460,6 +517,7 @@ const loadTabData = async (tab: ListTab, refresh = false) => {
         ...item,
         mediaUrls: parseMediaUrls(item.mediaUrls),
       }));
+      list = await patchPostStatuses(list);
       state.noMore = list.length < pageSize;
     }
 
@@ -469,6 +527,7 @@ const loadTabData = async (tab: ListTab, refresh = false) => {
         ...item,
         mediaUrls: parseMediaUrls(item.mediaUrls),
       }));
+      list = await patchPostStatuses(list);
       state.noMore = list.length < pageSize;
     }
 
@@ -478,6 +537,7 @@ const loadTabData = async (tab: ListTab, refresh = false) => {
         ...item,
         mediaUrls: parseMediaUrls(item.mediaUrls),
       }));
+      list = await patchPostStatuses(list);
       state.noMore = list.length < pageSize;
     }
 
@@ -605,13 +665,29 @@ const setFontScale = (value: number) => {
 };
 
 const pickAvatar = () => {
+  if (avatarUploading.value) return;
   uni.chooseImage({
     count: 1,
     sizeType: ['compressed'],
-    success: (res) => {
+    success: async (res) => {
       const filePath = res.tempFilePaths?.[0];
       if (filePath) {
+        const prevAvatar = profileForm.value.avatarUrl;
         profileForm.value.avatarUrl = filePath;
+        avatarUploading.value = true;
+        uni.showLoading({ title: '头像上传中...' });
+        try {
+          const policy = await postApi.getOssPolicy({ fileType: 'image' });
+          const remoteUrl = await postApi.uploadToOss(policy, filePath);
+          profileForm.value.avatarUrl = remoteUrl as string;
+          uni.showToast({ title: '头像已更新', icon: 'success' });
+        } catch {
+          profileForm.value.avatarUrl = prevAvatar;
+          uni.showToast({ title: '头像上传失败', icon: 'none' });
+        } finally {
+          uni.hideLoading();
+          avatarUploading.value = false;
+        }
       }
     },
   });
@@ -671,15 +747,62 @@ const openItem = (item: any) => {
   }
 };
 
-const cancelCollection = async (item: any) => {
+const togglePostLike = async (item: any) => {
+  const prev = !!item.isLiked;
+  item.isLiked = !prev;
+  item.likeCount = Number(item.likeCount || 0) + (item.isLiked ? 1 : -1);
+
   try {
-    await interactionApi.uncollect({ targetId: item.id, targetType: 'post' });
-    const state = tabStates.collections;
-    state.list = state.list.filter((v) => v.id !== item.id);
-    uni.showToast({ title: '已取消收藏', icon: 'none' });
+    if (item.isLiked) {
+      await interactionApi.like({ targetId: item.id, targetType: 'post' });
+    } else {
+      await interactionApi.unlike({ targetId: item.id, targetType: 'post' });
+    }
   } catch {
+    item.isLiked = prev;
+    item.likeCount = Number(item.likeCount || 0) + (item.isLiked ? 1 : -1);
     uni.showToast({ title: '操作失败', icon: 'none' });
   }
+};
+
+const togglePostCollect = async (item: any) => {
+  const prev = !!item.isCollected;
+  item.isCollected = !prev;
+  item.collectCount = Number(item.collectCount || 0) + (item.isCollected ? 1 : -1);
+
+  try {
+    if (item.isCollected) {
+      await interactionApi.collect({ targetId: item.id, targetType: 'post' });
+    } else {
+      await interactionApi.uncollect({ targetId: item.id, targetType: 'post' });
+      if (currentTab.value === 'collections') {
+        tabStates.collections.list = tabStates.collections.list.filter((v) => v.id !== item.id);
+      }
+    }
+  } catch {
+    item.isCollected = prev;
+    item.collectCount = Number(item.collectCount || 0) + (item.isCollected ? 1 : -1);
+    uni.showToast({ title: '操作失败', icon: 'none' });
+  }
+};
+
+const openCommentModal = (item: any) => {
+  const postId = Number(item?.id || 0);
+  if (!postId) return;
+  commentPostId.value = postId;
+  commentModalVisible.value = true;
+};
+
+const handleCommentSubmitted = (payload: { postId: number }) => {
+  const postId = Number(payload?.postId || 0);
+  if (!postId) return;
+
+  (Object.keys(tabStates) as ListTab[]).forEach((tab) => {
+    const list = tabStates[tab].list;
+    const idx = list.findIndex((item: any) => Number(item.id) === postId);
+    if (idx === -1) return;
+    list[idx].commentCount = Number(list[idx].commentCount || 0) + 1;
+  });
 };
 
 const deleteMyPost = async (item: any) => {
@@ -1091,6 +1214,25 @@ onShow(async () => {
   margin-top: 14rpx;
 }
 
+.post-metrics {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 10rpx;
+}
+
+.metric-text {
+  font-size: calc(12px * var(--font-scale));
+  color: #968b84;
+  background: #f5f2ef;
+  border-radius: 10rpx;
+  padding: 4rpx 10rpx;
+
+  &.active {
+    color: #ce6147;
+    background: #fdece6;
+  }
+}
+
 .list-sub {
   font-size: calc(12px * var(--font-scale));
   color: #a0958f;
@@ -1129,6 +1271,16 @@ onShow(async () => {
 
 .mini-btn.danger {
   background: #dd5b5b;
+}
+
+.mini-btn.ghost {
+  background: #f3efed;
+  color: #6f6661;
+}
+
+.mini-btn.ghost.active {
+  background: #fdece6;
+  color: #ce6147;
 }
 
 .loading-state,

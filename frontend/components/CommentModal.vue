@@ -17,7 +17,9 @@
               <text class="comment-text">{{ item.content }}</text>
               <view class="comment-meta">
                 <text class="time">{{ formatTime(item.createdAt) }}</text>
-                <text class="like-btn" @click="handleLike(item)">{{ item.isLiked ? '❤️' : '🤍' }} {{ item.likeCount }}</text>
+                <text class="like-btn" :class="{ active: item.isLiked }" @click="handleLike(item)">
+                  {{ item.isLiked ? '已赞' : '点赞' }} {{ item.likeCount }}
+                </text>
               </view>
             </view>
           </view>
@@ -40,7 +42,7 @@ import { useUserStore } from '@/store/user';
 import { commentApi } from '@/api';
 
 const props = defineProps<{ postId: number }>();
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'submitted']);
 
 const userStore = useUserStore();
 const comments = ref<any[]>([]);
@@ -111,6 +113,7 @@ const submitComment = async () => {
       },
     });
     inputText.value = '';
+    emit('submitted', { postId: props.postId });
     uni.showToast({ title: '评论成功', icon: 'success' });
   } catch {
     uni.showToast({ title: '评论失败', icon: 'none' });
@@ -135,8 +138,9 @@ onMounted(() => loadComments());
 .comment-text { display: block; font-size: 28rpx; color: #333; line-height: 1.5; }
 .comment-meta { display: flex; gap: 24rpx; margin-top: 12rpx; font-size: 24rpx; color: #999; }
 .like-btn { color: #999; }
+.like-btn.active { color: #e17055; }
 .input-bar { display: flex; gap: 16rpx; padding: 24rpx 32rpx; border-top: 1rpx solid #f0f0f0; background: #fff; }
 .input-field { flex: 1; height: 72rpx; background: #f5f5f5; border-radius: 36rpx; padding: 0 24rpx; font-size: 28rpx; }
-.send-btn { width: 120rpx; height: 72rpx; background: #6C5CE7; color: #fff; border-radius: 36rpx; font-size: 28rpx; border: none; }
+.send-btn { width: 120rpx; height: 72rpx; background: #e17055; color: #fff; border-radius: 36rpx; font-size: 28rpx; border: none; }
 .send-btn:disabled { background: #ccc; }
 </style>

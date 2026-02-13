@@ -34,7 +34,7 @@ onHide(() => {
 </script>
 
 <style lang="scss">
-@import '@/styles/accessible.scss';
+@use '@/styles/accessible.scss' as *;
 
 /* 全局样式 */
 page {
@@ -143,21 +143,6 @@ image {
 
 /* 全局 rich-text 样式 */
 .rich-content {
-  image, img {
-    max-width: 100% !important;
-    border-radius: 12rpx;
-    margin: 12rpx 0;
-  }
-  
-  p {
-    margin: 0 0 16rpx 0;
-    line-height: 1.8;
-  }
-  
-  h1, h2, h3 {
-    font-weight: 700;
-    margin: 24rpx 0 12rpx 0;
-    color: #1a1a1a;
-  }
+  line-height: 1.8;
 }
 </style>

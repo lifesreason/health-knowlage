@@ -133,6 +133,7 @@ const noMore = ref(false);
 const page = ref(1);
 const pageSize = 10;
 const userLocation = ref<{ lat: number; lng: number } | null>(null);
+const locationPrompted = ref(false);
 
 const resolveUserLocation = async () => {
   if (userLocation.value) return userLocation.value;
@@ -180,12 +181,22 @@ const loadFeed = async (refresh = false) => {
       });
     } else if (currentTab.value === 'nearby') {
       const location = await resolveUserLocation();
-      res = await feedApi.getNearbyList({
-        lat: location?.lat || 0,
-        lng: location?.lng || 0,
+      if (!location && !locationPrompted.value) {
+        locationPrompted.value = true;
+        uni.showToast({
+          title: '未获取到定位，已为你展示最新内容',
+          icon: 'none',
+        });
+      }
+      const nearbyParams: { lat?: number; lng?: number; page: number; pageSize: number } = {
         page: page.value,
         pageSize,
-      });
+      };
+      if (location) {
+        nearbyParams.lat = location.lat;
+        nearbyParams.lng = location.lng;
+      }
+      res = await feedApi.getNearbyList(nearbyParams);
     } else {
       res = await feedApi.getList({
         page: page.value,
@@ -232,11 +243,11 @@ const loadFeed = async (refresh = false) => {
 };
 
 // 下拉刷新
-const onRefresh = () => {
+const onRefresh = async () => {
   refreshing.value = true;
   page.value = 1;
   noMore.value = false;
-  loadFeed(true);
+  await loadFeed(true);
 };
 
 // 加载更多
@@ -248,7 +259,10 @@ const loadMore = () => {
 
 // 跳转详情
 const goToDetail = (item: any) => {
-  uni.navigateTo({ url: `/pages/detail/detail?id=${item.id}` });
+  const targetUrl = Number(item?.type) === 2
+    ? `/pages/video/video?id=${item.id}`
+    : `/pages/detail/detail?id=${item.id}`;
+  uni.navigateTo({ url: targetUrl });
 };
 
 // 跳转搜索
@@ -266,8 +280,9 @@ const goToPublish = () => {
 const handleLike = async (item: any) => {
   if (!userStore.requireLogin()) return;
 
-  item.isLiked = !item.isLiked;
-  item.likeCount += item.isLiked ? 1 : -1;
+  const prev = !!item.isLiked;
+  item.isLiked = !prev;
+  item.likeCount = Number(item.likeCount || 0) + (item.isLiked ? 1 : -1);
 
   try {
     if (item.isLiked) {
@@ -276,8 +291,8 @@ const handleLike = async (item: any) => {
       await interactionApi.unlike({ targetId: item.id, targetType: 'post' });
     }
   } catch (error) {
-    item.isLiked = !item.isLiked;
-    item.likeCount += item.isLiked ? 1 : -1;
+    item.isLiked = prev;
+    item.likeCount = Number(item.likeCount || 0) + (item.isLiked ? 1 : -1);
   }
 };
 
@@ -289,8 +304,8 @@ onShow(() => {
   // 可能需要刷新
 });
 
-onPullDownRefresh(() => {
-  onRefresh();
+onPullDownRefresh(async () => {
+  await onRefresh();
   uni.stopPullDownRefresh();
 });
 

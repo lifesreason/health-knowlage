@@ -93,7 +93,7 @@
 
     <!-- 底部操作栏 -->
     <view class="footer-bar" v-if="article">
-      <view class="input-area" @click="showCommentInput = true">
+      <view class="input-area" @click="showComments = true">
         <text class="input-placeholder">说点什么...</text>
       </view>
       <view class="action-btns">
@@ -117,6 +117,12 @@
       </view>
     </view>
 
+    <CommentModal
+      v-if="showComments && article?.id"
+      :post-id="article.id"
+      @close="showComments = false"
+      @submitted="handleCommentSubmitted"
+    />
     <canvas canvas-id="detailPosterCanvas" class="poster-canvas"></canvas>
   </view>
 </template>
@@ -129,6 +135,7 @@ import { useUserStore } from '@/store/user';
 import { storeToRefs } from 'pinia';
 import { formatRelativeTime } from '@/common/utils';
 import { buildSharePoster, previewOrSavePoster } from '@/common/poster';
+import CommentModal from '@/components/CommentModal.vue';
 import { postApi, interactionApi, userApi } from '@/api';
 
 const themeStore = useThemeStore();
@@ -139,12 +146,36 @@ const articleId = ref(0);
 const article = ref<any>(null);
 const loading = ref(true);
 const showComments = ref(false);
-const showCommentInput = ref(false);
 const followLoading = ref(false);
 const posterLoading = ref(false);
 const API_BASE_URL = 'http://localhost:3000/api/v1';
 
 const formatTime = (time: string) => formatRelativeTime(time);
+
+const appendClassForTag = (html: string, tag: string, className: string) => {
+  const reg = new RegExp(`<${tag}(\\s[^>]*?)?>`, 'gi');
+  return html.replace(reg, (match, attrs = '') => {
+    if (/class\s*=/.test(match)) {
+      return match.replace(
+        /class\s*=\s*["']([^"']*)["']/i,
+        (_m, cls) => `class="${`${cls} ${className}`.trim()}"`,
+      );
+    }
+    return `<${tag}${attrs || ''} class="${className}">`;
+  });
+};
+
+const normalizeRichTextHtml = (content: any) => {
+  if (typeof content !== 'string' || !content.trim()) return content;
+  let html = content;
+  html = appendClassForTag(html, 'img', 'article-rich-img');
+  html = appendClassForTag(html, 'p', 'article-rich-p');
+  html = appendClassForTag(html, 'blockquote', 'article-rich-quote');
+  html = appendClassForTag(html, 'h1', 'article-rich-title');
+  html = appendClassForTag(html, 'h2', 'article-rich-title');
+  html = appendClassForTag(html, 'h3', 'article-rich-title');
+  return html;
+};
 
 const getGridClass = (count: number) => {
   if (count === 1) return 'grid-1';
@@ -159,6 +190,10 @@ const loadArticle = async () => {
     const res = await postApi.getDetail(articleId.value);
     article.value = {
       ...res,
+      likeCount: Number(res.likeCount || 0),
+      commentCount: Number(res.commentCount || 0),
+      collectCount: Number(res.collectCount || 0),
+      content: normalizeRichTextHtml(res.content),
       user: {
         ...res.user,
         isFollowed: !!res.user?.isFollowed,
@@ -211,8 +246,9 @@ const handleFollow = async () => {
 
 const handleLike = async () => {
   if (!userStore.requireLogin() || !article.value) return;
-  article.value.isLiked = !article.value.isLiked;
-  article.value.likeCount += article.value.isLiked ? 1 : -1;
+  const prev = !!article.value.isLiked;
+  article.value.isLiked = !prev;
+  article.value.likeCount = Number(article.value.likeCount || 0) + (article.value.isLiked ? 1 : -1);
   try {
     if (article.value.isLiked) {
       await interactionApi.like({ targetId: article.value.id, targetType: 'post' });
@@ -220,15 +256,16 @@ const handleLike = async () => {
       await interactionApi.unlike({ targetId: article.value.id, targetType: 'post' });
     }
   } catch {
-    article.value.isLiked = !article.value.isLiked;
-    article.value.likeCount += article.value.isLiked ? 1 : -1;
+    article.value.isLiked = prev;
+    article.value.likeCount = Number(article.value.likeCount || 0) + (article.value.isLiked ? 1 : -1);
   }
 };
 
 const handleCollect = async () => {
   if (!userStore.requireLogin() || !article.value) return;
-  article.value.isCollected = !article.value.isCollected;
-  article.value.collectCount = (article.value.collectCount || 0) + (article.value.isCollected ? 1 : -1);
+  const prev = !!article.value.isCollected;
+  article.value.isCollected = !prev;
+  article.value.collectCount = Number(article.value.collectCount || 0) + (article.value.isCollected ? 1 : -1);
   try {
     if (article.value.isCollected) {
       await interactionApi.collect({ targetId: article.value.id, targetType: 'post' });
@@ -236,13 +273,18 @@ const handleCollect = async () => {
       await interactionApi.uncollect({ targetId: article.value.id, targetType: 'post' });
     }
   } catch {
-    article.value.isCollected = !article.value.isCollected;
-    article.value.collectCount = (article.value.collectCount || 0) + (article.value.isCollected ? 1 : -1);
+    article.value.isCollected = prev;
+    article.value.collectCount = Number(article.value.collectCount || 0) + (article.value.isCollected ? 1 : -1);
   }
 };
 
 const previewImage = (url: string, index: number) => {
   uni.previewImage({ current: index, urls: article.value?.mediaUrls || [url] });
+};
+
+const handleCommentSubmitted = () => {
+  if (!article.value) return;
+  article.value.commentCount = Number(article.value.commentCount || 0) + 1;
 };
 
 const handlePoster = async () => {
@@ -446,29 +488,31 @@ onLoad((options: any) => {
 
 // 深度选择器处理富文本内的样式
 :deep(.article-body) {
-  img {
-    max-width: 100%;
-    border-radius: 16rpx;
-    margin: 16rpx 0;
-  }
-  
-  p {
-    margin-bottom: 24rpx;
-  }
-  
-  h1, h2, h3 {
-    font-weight: 700;
-    margin: 32rpx 0 16rpx;
-    color: #1a1a1a;
-  }
-  
-  blockquote {
-    border-left: 6rpx solid #E17055;
-    padding-left: 24rpx;
-    margin: 24rpx 0;
-    color: #666;
-    font-style: italic;
-  }
+  line-height: 2;
+}
+
+:deep(.article-body .article-rich-img) {
+  max-width: 100%;
+  border-radius: 16rpx;
+  margin: 16rpx 0;
+}
+
+:deep(.article-body .article-rich-p) {
+  margin-bottom: 24rpx;
+}
+
+:deep(.article-body .article-rich-title) {
+  font-weight: 700;
+  margin: 32rpx 0 16rpx;
+  color: #1a1a1a;
+}
+
+:deep(.article-body .article-rich-quote) {
+  border-left: 6rpx solid #E17055;
+  padding-left: 24rpx;
+  margin: 24rpx 0;
+  color: #666;
+  font-style: italic;
 }
 
 // 图片区

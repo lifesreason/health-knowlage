@@ -33,6 +33,11 @@ export const circleApi = {
   getMyCircles() {
     return http.get('/circle/user/joined');
   },
+
+  /** 检查我是否已加入指定圈子 */
+  checkJoined(id: number) {
+    return http.get(`/circle/${id}/check-joined`);
+  },
 };
 
 export default circleApi;

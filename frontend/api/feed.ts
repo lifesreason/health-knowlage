@@ -15,7 +15,7 @@ export const feedApi = {
   },
 
   /** 获取附近内容 */
-  getNearbyList(params: { lat: number; lng: number; page: number; pageSize: number }) {
+  getNearbyList(params: { lat?: number; lng?: number; page: number; pageSize: number }) {
     return http.get('/feed/nearby', { params });
   },
 

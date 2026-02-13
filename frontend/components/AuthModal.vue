@@ -4,7 +4,7 @@
       <!-- 顶部装饰 -->
       <view class="modal-header">
         <view class="header-bg"></view>
-        <text class="header-icon">👋</text>
+        <text class="header-icon">登</text>
         <text class="close-btn" @click="$emit('close')">✕</text>
       </view>
       
@@ -16,15 +16,15 @@
         <!-- 功能列表 -->
         <view class="features">
           <view class="feature-item">
-            <text class="feature-icon">💬</text>
+            <text class="feature-icon">发</text>
             <text class="feature-text">发布健康话题</text>
           </view>
           <view class="feature-item">
-            <text class="feature-icon">❤️</text>
+            <text class="feature-icon">赞</text>
             <text class="feature-text">点赞收藏内容</text>
           </view>
           <view class="feature-item">
-            <text class="feature-icon">🏠</text>
+            <text class="feature-icon">圈</text>
             <text class="feature-text">加入健康圈子</text>
           </view>
         </view>
@@ -107,7 +107,16 @@ const goToLogin = () => {
 
 .header-icon {
   position: relative;
-  font-size: 80rpx;
+  width: 90rpx;
+  height: 90rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 46rpx;
+  font-weight: 700;
   z-index: 1;
 }
 
@@ -165,7 +174,16 @@ const goToLogin = () => {
 }
 
 .feature-icon {
-  font-size: 36rpx;
+  width: 42rpx;
+  height: 42rpx;
+  border-radius: 12rpx;
+  background: #eef2f5;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22rpx;
+  font-weight: 700;
 }
 
 .feature-text {

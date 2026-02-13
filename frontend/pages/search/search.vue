@@ -3,7 +3,7 @@
     <!-- 搜索头部 -->
     <view class="search-header">
       <view class="search-bar">
-        <text class="search-icon">🔍</text>
+        <text class="search-icon">搜</text>
         <input 
           v-model="keyword" 
           type="text" 
@@ -24,7 +24,7 @@
       <!-- 热门搜索 -->
       <view class="section-card">
         <view class="section-header">
-          <text class="section-title" :style="{ fontSize: `calc(15px * ${fontScale})` }">🔥 热门搜索</text>
+          <text class="section-title" :style="{ fontSize: `calc(15px * ${fontScale})` }">热门搜索</text>
         </view>
         <view class="hot-list">
           <view 
@@ -42,7 +42,7 @@
       <!-- 搜索历史 -->
       <view class="section-card" v-if="searchHistory.length">
         <view class="section-header">
-          <text class="section-title" :style="{ fontSize: `calc(15px * ${fontScale})` }">⏱️ 搜索历史</text>
+          <text class="section-title" :style="{ fontSize: `calc(15px * ${fontScale})` }">搜索历史</text>
           <text class="clear-history" @click="clearHistory" :style="{ fontSize: `calc(13px * ${fontScale})` }">清空</text>
         </view>
         <view class="history-tags">
@@ -72,7 +72,7 @@
 
       <!-- 空结果 -->
       <view v-else-if="searched && results.length === 0" class="empty-state">
-        <text class="empty-icon">🔍</text>
+        <text class="empty-icon">空</text>
         <text class="empty-title">未找到相关结果</text>
         <text class="empty-desc">换个关键词试试吧</text>
       </view>
@@ -96,8 +96,8 @@
           <text class="result-title" :style="{ fontSize: `calc(16px * ${fontScale})` }">{{ item.title || '无标题' }}</text>
           <text class="result-content" :style="{ fontSize: `calc(14px * ${fontScale})` }">{{ stripHtml(item.content) }}</text>
           <view class="result-footer">
-            <text class="result-stat">❤️ {{ item.likeCount || 0 }}</text>
-            <text class="result-stat">💬 {{ item.commentCount || 0 }}</text>
+            <text class="result-stat">赞 {{ item.likeCount || 0 }}</text>
+            <text class="result-stat">评 {{ item.commentCount || 0 }}</text>
           </view>
         </view>
 
@@ -171,8 +171,10 @@ const clearHistory = () => {
 };
 
 const doSearch = async () => {
-  if (!keyword.value.trim()) return;
-  saveHistory(keyword.value);
+  const normalized = keyword.value.trim();
+  if (!normalized) return;
+  keyword.value = normalized;
+  saveHistory(normalized);
   searched.value = true;
   page.value = 1;
   noMore.value = false;
@@ -206,11 +208,19 @@ const loadMore = () => {
 };
 
 const goToDetail = (item: any) => {
-  uni.navigateTo({ url: `/pages/detail/detail?id=${item.id}` });
+  const targetUrl = Number(item?.type) === 2
+    ? `/pages/video/video?id=${item.id}`
+    : `/pages/detail/detail?id=${item.id}`;
+  uni.navigateTo({ url: targetUrl });
 };
 
 const goBack = () => {
-  uni.navigateBack();
+  const pages = getCurrentPages();
+  if (pages.length > 1) {
+    uni.navigateBack();
+    return;
+  }
+  uni.switchTab({ url: '/pages/index/index' });
 };
 
 onMounted(() => loadHistory());
@@ -252,7 +262,16 @@ onLoad((options: any) => {
 }
 
 .search-icon {
-  font-size: 32rpx;
+  width: 38rpx;
+  height: 38rpx;
+  border-radius: 10rpx;
+  background: #eceff2;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22rpx;
+  font-weight: 700;
 }
 
 .search-input {
@@ -400,8 +419,16 @@ onLoad((options: any) => {
 }
 
 .empty-icon {
-  font-size: 80rpx;
-  opacity: 0.5;
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 22rpx;
+  background: #eef2f7;
+  color: #73839b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  font-weight: 700;
 }
 
 .empty-title {

@@ -2,7 +2,7 @@
   <view class="circle-page" :style="{ '--font-scale': fontScale }">
     <!-- 圈子封面头部 -->
     <view class="circle-hero">
-      <image class="hero-bg" :src="circle.cover || 'https://via.placeholder.com/750x400'" mode="aspectFill"></image>
+      <image class="hero-bg" :src="circle.coverUrl || circle.cover || '/static/default-avatar.png'" mode="aspectFill"></image>
       <view class="hero-overlay"></view>
       <view class="hero-content">
         <text class="circle-name" :style="{ fontSize: `calc(22px * ${fontScale})` }">{{ circle.name }}</text>
@@ -32,7 +32,7 @@
     <!-- 帖子列表 -->
     <scroll-view scroll-y class="post-list" @scrolltolower="loadMore">
       <view v-if="posts.length === 0 && !loading" class="empty-state">
-        <text class="empty-icon">💬</text>
+        <text class="empty-icon">评</text>
         <text class="empty-text" :style="{ fontSize: `calc(14px * ${fontScale})` }">暂无帖子，快来发布第一篇吧</text>
       </view>
 
@@ -64,11 +64,11 @@
         
         <view class="post-actions">
           <view class="action-item" @click.stop="handleLike(item)">
-            <text class="action-icon">{{ item.isLiked ? '❤️' : '🤍' }}</text>
+            <text class="action-icon" :class="{ active: item.isLiked }">赞</text>
             <text class="action-count" :style="{ fontSize: `calc(13px * ${fontScale})` }">{{ item.likeCount || 0 }}</text>
           </view>
           <view class="action-item">
-            <text class="action-icon">💬</text>
+            <text class="action-icon">评</text>
             <text class="action-count" :style="{ fontSize: `calc(13px * ${fontScale})` }">{{ item.commentCount || 0 }}</text>
           </view>
         </view>
@@ -88,14 +88,14 @@
 
     <!-- 发布按钮 -->
     <view v-if="circle.isJoined" class="publish-fab" @click="goToPublish">
-      <text class="fab-icon">✏️</text>
+      <text class="fab-icon">发</text>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app';
+import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app';
 import { useThemeStore } from '@/store/theme';
 import { useUserStore } from '@/store/user';
 import { storeToRefs } from 'pinia';
@@ -125,9 +125,21 @@ const stripHtml = (html: string) => {
 const loadCircle = async () => {
   try {
     const res = await circleApi.getDetail(circleId.value);
-    circle.value = res;
+    circle.value = {
+      ...res,
+      isJoined: !!res.isJoined,
+    };
+    if (userStore.isLoggedIn) {
+      try {
+        const joinedRes = await circleApi.checkJoined(circleId.value);
+        circle.value.isJoined = !!joinedRes.joined;
+      } catch {
+        // 忽略状态检测失败，避免影响详情加载
+      }
+    }
   } catch (error) {
     console.error('加载圈子失败', error);
+    uni.showToast({ title: '圈子加载失败', icon: 'none' });
   }
 };
 
@@ -163,6 +175,7 @@ const loadPosts = async () => {
     page.value++;
   } catch (error) {
     console.error('加载帖子失败', error);
+    uni.showToast({ title: '帖子加载失败', icon: 'none' });
   } finally {
     loading.value = false;
   }
@@ -181,6 +194,7 @@ const toggleJoin = async () => {
           try {
             await circleApi.leave(circleId.value);
             circle.value.isJoined = false;
+            circle.value.memberCount = Math.max(0, Number(circle.value.memberCount || 0) - 1);
             uni.showToast({ title: '已退出', icon: 'none' });
           } catch {
             uni.showToast({ title: '操作失败', icon: 'none' });
@@ -192,6 +206,7 @@ const toggleJoin = async () => {
     try {
       await circleApi.join(circleId.value);
       circle.value.isJoined = true;
+      circle.value.memberCount = Number(circle.value.memberCount || 0) + 1;
       uni.showToast({ title: '加入成功', icon: 'success' });
     } catch {
       uni.showToast({ title: '加入失败', icon: 'none' });
@@ -201,8 +216,9 @@ const toggleJoin = async () => {
 
 const handleLike = async (item: any) => {
   if (!userStore.requireLogin()) return;
-  item.isLiked = !item.isLiked;
-  item.likeCount += item.isLiked ? 1 : -1;
+  const prev = !!item.isLiked;
+  item.isLiked = !prev;
+  item.likeCount = Number(item.likeCount || 0) + (item.isLiked ? 1 : -1);
   try {
     if (item.isLiked) {
       await interactionApi.like({ targetId: item.id, targetType: 'post' });
@@ -210,8 +226,8 @@ const handleLike = async (item: any) => {
       await interactionApi.unlike({ targetId: item.id, targetType: 'post' });
     }
   } catch {
-    item.isLiked = !item.isLiked;
-    item.likeCount += item.isLiked ? 1 : -1;
+    item.isLiked = prev;
+    item.likeCount = Number(item.likeCount || 0) + (item.isLiked ? 1 : -1);
   }
 };
 
@@ -230,6 +246,11 @@ onLoad((options: any) => {
 onMounted(() => {
   loadCircle();
   loadPosts();
+});
+
+onShow(() => {
+  if (!circleId.value) return;
+  loadCircle();
 });
 
 onPullDownRefresh(() => {
@@ -356,8 +377,16 @@ onPullDownRefresh(() => {
 }
 
 .empty-icon {
-  font-size: 80rpx;
-  opacity: 0.5;
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 18rpx;
+  background: #f1f3f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  color: #8f97a3;
+  font-weight: 700;
 }
 
 .empty-text {
@@ -454,7 +483,21 @@ onPullDownRefresh(() => {
 }
 
 .action-icon {
-  font-size: 32rpx;
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 10rpx;
+  background: #f4f6f8;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20rpx;
+  font-weight: 700;
+}
+
+.action-icon.active {
+  background: #ffe9e2;
+  color: #d25f45;
 }
 
 .action-count {
@@ -510,6 +553,8 @@ onPullDownRefresh(() => {
 }
 
 .fab-icon {
-  font-size: 44rpx;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #fff;
 }
 </style>

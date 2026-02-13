@@ -1,12 +1,12 @@
 <template>
   <view class="empty-state">
     <view class="empty-illustration">
-      <text class="empty-icon">{{ iconMap[type] || '📭' }}</text>
+      <text class="empty-icon">{{ iconMap[type] || '空' }}</text>
     </view>
     <text class="empty-title">{{ titleMap[type] || '暂无内容' }}</text>
     <text class="empty-message">{{ message }}</text>
     <button v-if="showRetry" class="retry-btn" @click="$emit('retry')">
-      <text class="retry-icon">🔄</text>
+      <text class="retry-icon">重</text>
       <text>重新加载</text>
     </button>
   </view>
@@ -22,10 +22,10 @@ defineProps<{
 defineEmits(['retry']);
 
 const iconMap: Record<string, string> = {
-  empty: '📭',
-  error: '😵',
-  network: '📶',
-  deleted: '🗑️',
+  empty: '空',
+  error: '错',
+  network: '网',
+  deleted: '删',
 };
 
 const titleMap: Record<string, string> = {
@@ -57,7 +57,16 @@ const titleMap: Record<string, string> = {
 }
 
 .empty-icon {
-  font-size: 80rpx;
+  width: 84rpx;
+  height: 84rpx;
+  border-radius: 22rpx;
+  background: #ffe9e2;
+  color: #d25f45;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38rpx;
+  font-weight: 700;
 }
 
 .empty-title {
@@ -88,6 +97,14 @@ const titleMap: Record<string, string> = {
 }
 
 .retry-icon {
-  font-size: 28rpx;
+  width: 30rpx;
+  height: 30rpx;
+  border-radius: 8rpx;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20rpx;
+  font-weight: 700;
 }
 </style>

@@ -25,7 +25,8 @@
         "requiredPrivateInfos" : [ "getLocation" ]
     },
     "uniStatistics" : {
-        "enable" : true
+        "enable" : true,
+        "version" : "2"
     },
     "vueVersion" : "3"
 }

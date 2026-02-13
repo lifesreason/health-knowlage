@@ -3,11 +3,11 @@
     <!-- 类型选择 -->
     <view class="type-tabs">
       <view class="type-tab" :class="{ active: publishType === 'image' }" @click="publishType = 'image'">
-        <text class="tab-icon">📷</text>
+        <text class="tab-icon">图</text>
         <text class="tab-text" :style="{ fontSize: `calc(14px * ${fontScale})` }">图文</text>
       </view>
       <view class="type-tab" :class="{ active: publishType === 'video' }" @click="publishType = 'video'">
-        <text class="tab-icon">🎬</text>
+        <text class="tab-icon">视</text>
         <text class="tab-text" :style="{ fontSize: `calc(14px * ${fontScale})` }">视频</text>
       </view>
     </view>
@@ -16,7 +16,7 @@
       <!-- 标题 -->
       <view class="form-card">
         <view class="form-label">
-          <text class="label-icon">✏️</text>
+          <text class="label-icon">标</text>
           <text :style="{ fontSize: `calc(14px * ${fontScale})` }">标题</text>
         </view>
         <input v-model="formData.title" placeholder="请输入标题（50字以内）" maxlength="50" class="form-input" :style="{ fontSize: `calc(15px * ${fontScale})` }" />
@@ -25,7 +25,7 @@
       <!-- 内容 -->
       <view class="form-card">
         <view class="form-label">
-          <text class="label-icon">📝</text>
+          <text class="label-icon">文</text>
           <text :style="{ fontSize: `calc(14px * ${fontScale})` }">内容</text>
         </view>
         <textarea v-model="formData.content" placeholder="分享您的健康经验..." maxlength="2000" class="form-textarea" :style="{ fontSize: `calc(15px * ${fontScale})` }"></textarea>
@@ -35,7 +35,7 @@
       <!-- 媒体上传 -->
       <view class="form-card">
         <view class="form-label">
-          <text class="label-icon">{{ publishType === 'image' ? '🖼️' : '🎥' }}</text>
+          <text class="label-icon">{{ publishType === 'image' ? '图' : '视' }}</text>
           <text :style="{ fontSize: `calc(14px * ${fontScale})` }">{{ publishType === 'image' ? '图片' : '视频' }}</text>
         </view>
         
@@ -69,7 +69,7 @@
       <view class="form-card" @click="showCirclePicker = true">
         <view class="circle-selector">
           <view class="selector-left">
-            <text class="label-icon">🏠</text>
+            <text class="label-icon">圈</text>
             <text class="selector-label" :style="{ fontSize: `calc(14px * ${fontScale})` }">选择圈子</text>
           </view>
           <view class="selector-right">
@@ -83,7 +83,7 @@
     <!-- 底部发布栏 -->
     <view class="footer-bar">
       <button class="publish-btn" :disabled="publishing" @click="handlePublish" :style="{ fontSize: `calc(17px * ${fontScale})` }">
-        {{ publishing ? '发布中...' : '✨ 发布' }}
+        {{ publishing ? '发布中...' : '发布' }}
       </button>
     </view>
 
@@ -95,6 +95,10 @@
           <text class="picker-close" @click="showCirclePicker = false">✕</text>
         </view>
         <scroll-view scroll-y class="picker-list">
+          <view v-if="circles.length === 0" class="picker-empty">
+            <text class="picker-empty-text" :style="{ fontSize: `calc(14px * ${fontScale})` }">暂未加入任何圈子</text>
+            <text class="picker-empty-tip" :style="{ fontSize: `calc(12px * ${fontScale})` }">请先在圈子详情页加入圈子后再发布内容</text>
+          </view>
           <view 
             v-for="item in circles" 
             :key="item.id" 
@@ -129,13 +133,34 @@ const selectedCircle = ref<any>(null);
 const circles = ref<any[]>([]);
 const showCirclePicker = ref(false);
 const publishing = ref(false);
+const noCirclePrompted = ref(false);
+
+const backOrHome = () => {
+  const pages = getCurrentPages();
+  if (pages.length > 1) {
+    uni.navigateBack();
+    return;
+  }
+  uni.switchTab({ url: '/pages/index/index' });
+};
 
 const loadCircles = async () => {
   try {
     const res = await circleApi.getMyCircles();
-    circles.value = res.list || [];
+    circles.value = Array.isArray(res) ? res : (res.list || []);
+    if (formData.value.circleId) {
+      const matched = circles.value.find((item) => Number(item.id) === Number(formData.value.circleId));
+      if (matched) selectedCircle.value = matched;
+    } else if (circles.value.length > 0) {
+      selectedCircle.value = circles.value[0];
+      formData.value.circleId = Number(circles.value[0].id);
+    } else if (!noCirclePrompted.value) {
+      noCirclePrompted.value = true;
+      uni.showToast({ title: '请先加入圈子再发布', icon: 'none' });
+    }
   } catch (error) {
     console.error('加载圈子失败', error);
+    uni.showToast({ title: '圈子加载失败', icon: 'none' });
   }
 };
 
@@ -176,6 +201,10 @@ const removeVideo = () => {
 };
 
 const handlePublish = async () => {
+  if (circles.value.length === 0) {
+    uni.showToast({ title: '暂无可发布圈子，请先加入圈子', icon: 'none' });
+    return;
+  }
   if (!formData.value.circleId) {
     uni.showToast({ title: '请选择圈子', icon: 'none' });
     return;
@@ -218,7 +247,7 @@ const handlePublish = async () => {
 
     uni.report?.('publish_result', { success: true, media_type: publishType.value });
     uni.showToast({ title: '发布成功，审核通过后展示', icon: 'success' });
-    setTimeout(() => uni.navigateBack(), 1500);
+    setTimeout(() => backOrHome(), 1500);
   } catch {
     uni.report?.('publish_result', { success: false, media_type: publishType.value });
     uni.showToast({ title: '发布失败', icon: 'none' });
@@ -273,7 +302,21 @@ onMounted(() => loadCircles());
 }
 
 .tab-icon {
-  font-size: 36rpx;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 10rpx;
+  background: #eef2f5;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.type-tab.active .tab-icon {
+  background: #ffe9e2;
+  color: #d25f45;
 }
 
 // 表单滚动区
@@ -300,7 +343,16 @@ onMounted(() => loadCircles());
 }
 
 .label-icon {
-  font-size: 32rpx;
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 10rpx;
+  background: #eef2f5;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18rpx;
+  font-weight: 700;
 }
 
 .form-input {
@@ -520,6 +572,23 @@ onMounted(() => loadCircles());
   &:active {
     background: #fafafa;
   }
+}
+
+.picker-empty {
+  padding: 40rpx 0;
+  text-align: center;
+}
+
+.picker-empty-text {
+  display: block;
+  color: #4b5563;
+  font-weight: 600;
+}
+
+.picker-empty-tip {
+  display: block;
+  color: #9aa1ab;
+  margin-top: 8rpx;
 }
 
 .check-icon {

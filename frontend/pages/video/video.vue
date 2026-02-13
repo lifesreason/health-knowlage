@@ -62,7 +62,7 @@
 
             <!-- 双击点赞动画 -->
             <view v-if="showLikeAnimation" class="like-animation">
-              <text class="heart-icon">❤️</text>
+              <text class="heart-icon">赞</text>
             </view>
 
             <!-- 视频信息 -->
@@ -142,24 +142,25 @@
 
     <!-- 评论弹窗 -->
     <CommentModal
-      v-if="showComments"
-      :post-id="currentVideo?.id"
+      v-if="showComments && commentPostId > 0"
+      :post-id="commentPostId"
       @close="showComments = false"
+      @submitted="handleCommentSubmitted"
     />
     <canvas canvas-id="videoPosterCanvas" class="poster-canvas"></canvas>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { onShow, onHide, onShareAppMessage } from '@dcloudio/uni-app';
+import { ref, computed, nextTick } from 'vue';
+import { onLoad, onShow, onHide, onShareAppMessage } from '@dcloudio/uni-app';
 import { useThemeStore } from '@/store/theme';
 import { useUserStore } from '@/store/user';
 import { storeToRefs } from 'pinia';
 import { formatNumber } from '@/common/utils';
 import { buildSharePoster, previewOrSavePoster } from '@/common/poster';
 import CommentModal from '@/components/CommentModal.vue';
-import { feedApi, interactionApi, userApi } from '@/api';
+import { feedApi, interactionApi, postApi, userApi } from '@/api';
 
 const themeStore = useThemeStore();
 const userStore = useUserStore();
@@ -171,7 +172,9 @@ const currentIndex = ref(0);
 const pausedVideos = ref<Record<number, boolean>>({});
 const showLikeAnimation = ref(false);
 const showComments = ref(false);
+const commentPostId = ref(0);
 const loading = ref(true);
+const targetVideoId = ref<number | null>(null);
 const MOBILE_DATA_PLAY_CONFIRM_KEY = 'video_mobile_data_play_allowed';
 const posterLoading = ref(false);
 const API_BASE_URL = 'http://localhost:3000/api/v1';
@@ -179,6 +182,57 @@ const API_BASE_URL = 'http://localhost:3000/api/v1';
 const currentVideo = computed(() => videoList.value[currentIndex.value]);
 
 const getAuthor = (item: any) => item.author || item.user || {};
+
+const applyTargetVideoIndex = () => {
+  if (!videoList.value.length) {
+    currentIndex.value = 0;
+    return;
+  }
+  if (!targetVideoId.value) {
+    currentIndex.value = 0;
+    return;
+  }
+  const idx = videoList.value.findIndex((item) => Number(item.id) === Number(targetVideoId.value));
+  currentIndex.value = idx >= 0 ? idx : 0;
+};
+
+const ensureTargetVideoInList = async () => {
+  if (!targetVideoId.value || !Number.isFinite(targetVideoId.value)) return;
+  const exists = videoList.value.some((item) => Number(item.id) === Number(targetVideoId.value));
+  if (exists) return;
+
+  try {
+    const detail = await postApi.getDetail(Number(targetVideoId.value));
+    if (Number(detail?.type) !== 2) return;
+    const videoUrl = detail?.videoUrl || detail?.mediaUrls?.[0];
+    if (!videoUrl) return;
+
+    const mapped = {
+      ...detail,
+      author: detail.author || detail.user,
+      videoUrl,
+      coverUrl: detail.coverUrl || detail.videoMeta?.coverUrl || null,
+      isFollowed: !!detail.author?.isFollowed || !!detail.user?.isFollowed,
+      isLiked: !!detail.isLiked,
+      isCollected: !!detail.isCollected,
+    };
+
+    if (userStore.isLoggedIn) {
+      try {
+        const status = await interactionApi.getPostStatus(Number(targetVideoId.value));
+        mapped.isLiked = !!status.isLiked;
+        mapped.isCollected = !!status.isCollected;
+        mapped.isFollowed = !!status.isFollowedAuthor;
+      } catch {
+        // 忽略状态补齐失败
+      }
+    }
+
+    videoList.value.unshift(mapped);
+  } catch {
+    // 忽略目标视频补拉失败，保留原视频流可用
+  }
+};
 
 const ensureNetworkAllowed = async () => {
   const networkType = await new Promise<string>((resolve) => {
@@ -258,8 +312,11 @@ const loadVideos = async () => {
       }
     }
 
-    if (userStore.isLoggedIn && videoList.value[0]?.id) {
-      userApi.recordHistory({ postId: videoList.value[0].id }).catch(() => {});
+    await ensureTargetVideoInList();
+    applyTargetVideoIndex();
+
+    if (userStore.isLoggedIn && videoList.value[currentIndex.value]?.id) {
+      userApi.recordHistory({ postId: videoList.value[currentIndex.value].id }).catch(() => {});
     }
   } catch (error) {
     console.error('加载视频失败', error);
@@ -309,8 +366,9 @@ const onVideoEnded = (_index: number) => {};
 
 const handleLike = async (item: any) => {
   if (!userStore.requireLogin()) return;
-  item.isLiked = !item.isLiked;
-  item.likeCount += item.isLiked ? 1 : -1;
+  const prev = !!item.isLiked;
+  item.isLiked = !prev;
+  item.likeCount = Number(item.likeCount || 0) + (item.isLiked ? 1 : -1);
   try {
     if (item.isLiked) {
       await interactionApi.like({ targetId: item.id, targetType: 'post' });
@@ -318,14 +376,15 @@ const handleLike = async (item: any) => {
       await interactionApi.unlike({ targetId: item.id, targetType: 'post' });
     }
   } catch {
-    item.isLiked = !item.isLiked;
-    item.likeCount += item.isLiked ? 1 : -1;
+    item.isLiked = prev;
+    item.likeCount = Number(item.likeCount || 0) + (item.isLiked ? 1 : -1);
   }
 };
 
 const handleCollect = async (item: any) => {
   if (!userStore.requireLogin()) return;
-  item.isCollected = !item.isCollected;
+  const prev = !!item.isCollected;
+  item.isCollected = !prev;
   item.collectCount = (item.collectCount || 0) + (item.isCollected ? 1 : -1);
   try {
     if (item.isCollected) {
@@ -334,12 +393,26 @@ const handleCollect = async (item: any) => {
       await interactionApi.uncollect({ targetId: item.id, targetType: 'post' });
     }
   } catch {
-    item.isCollected = !item.isCollected;
+    item.isCollected = prev;
     item.collectCount = (item.collectCount || 0) + (item.isCollected ? 1 : -1);
   }
 };
 
-const openComments = (_item: any) => { showComments.value = true; };
+const openComments = (item: any) => {
+  const id = Number(item?.id || 0);
+  if (!id) return;
+  commentPostId.value = id;
+  showComments.value = true;
+};
+
+const handleCommentSubmitted = (payload: { postId: number }) => {
+  const targetId = Number(payload?.postId || 0);
+  if (!targetId) return;
+  const idx = videoList.value.findIndex((item) => Number(item.id) === targetId);
+  if (idx === -1) return;
+  const target = videoList.value[idx];
+  target.commentCount = Number(target.commentCount || 0) + 1;
+};
 
 const goToProfile = (author: any) => {
   const nickname = author?.nickname;
@@ -396,8 +469,14 @@ onShareAppMessage(() => {
   };
 });
 
-onShow(() => {
-  loadVideos();
+onLoad((options: any) => {
+  const id = Number(options?.id || 0);
+  targetVideoId.value = Number.isFinite(id) && id > 0 ? id : null;
+});
+
+onShow(async () => {
+  await loadVideos();
+  await nextTick();
   if (currentVideo.value) {
     const videoContext = uni.createVideoContext(`video-${currentVideo.value.id}`);
     videoContext?.play();
@@ -546,7 +625,19 @@ onHide(() => {
   pointer-events: none;
 }
 
-.heart-icon { font-size: 240rpx; }
+.heart-icon {
+  width: 240rpx;
+  height: 240rpx;
+  border-radius: 60rpx;
+  background: rgba(225, 112, 85, 0.18);
+  color: #fff;
+  border: 2rpx solid rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 120rpx;
+  font-weight: 700;
+}
 
 @keyframes likeScale {
   0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }

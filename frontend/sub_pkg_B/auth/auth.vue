@@ -10,7 +10,7 @@
     <!-- 头部信息 -->
     <view class="auth-header" :style="{ paddingTop: (statusBarHeight + 60) + 'px' }">
       <view class="logo-wrap">
-        <text class="logo-emoji">🏥</text>
+        <text class="logo-emoji">健</text>
       </view>
       <text class="app-name" :style="{ fontSize: `calc(26px * ${fontScale})` }">银龄健康</text>
       <text class="app-desc" :style="{ fontSize: `calc(14px * ${fontScale})` }">专为中老年人打造的健康知识平台</text>
@@ -26,21 +26,21 @@
         <!-- 功能亮点 -->
         <view class="features">
           <view class="feature-item">
-            <text class="feature-icon">📖</text>
+            <text class="feature-icon">知</text>
             <text class="feature-text" :style="{ fontSize: `calc(13px * ${fontScale})` }">专业健康知识</text>
           </view>
           <view class="feature-item">
-            <text class="feature-icon">👨‍⚕️</text>
+            <text class="feature-icon">医</text>
             <text class="feature-text" :style="{ fontSize: `calc(13px * ${fontScale})` }">医师在线答疑</text>
           </view>
           <view class="feature-item">
-            <text class="feature-icon">🏠</text>
+            <text class="feature-icon">圈</text>
             <text class="feature-text" :style="{ fontSize: `calc(13px * ${fontScale})` }">健康圈子交流</text>
           </view>
         </view>
         
         <button class="wx-login-btn" @click="handleWxLogin">
-          <text class="wx-icon">💬</text>
+          <text class="wx-icon">微</text>
           <text :style="{ fontSize: `calc(17px * ${fontScale})` }">微信一键登录</text>
         </button>
         
@@ -55,7 +55,7 @@
         <text class="section-desc" :style="{ fontSize: `calc(14px * ${fontScale})` }">绑定后可获得更多专属功能</text>
         
         <button class="phone-auth-btn" open-type="getPhoneNumber" @getphonenumber="handleGetPhone">
-          <text class="phone-icon">📱</text>
+          <text class="phone-icon">机</text>
           <text :style="{ fontSize: `calc(16px * ${fontScale})` }">一键授权手机号</text>
         </button>
 
@@ -67,11 +67,11 @@
 
         <view class="input-group">
           <view class="input-wrap">
-            <text class="input-icon">📞</text>
+            <text class="input-icon">号</text>
             <input v-model="phone" type="number" placeholder="请输入手机号" maxlength="11" class="form-input" :style="{ fontSize: `calc(15px * ${fontScale})` }" />
           </view>
           <view class="input-wrap code-wrap">
-            <text class="input-icon">🔒</text>
+            <text class="input-icon">码</text>
             <input v-model="code" type="number" placeholder="验证码" maxlength="6" class="form-input" :style="{ fontSize: `calc(15px * ${fontScale})` }" />
             <button class="code-btn" :disabled="countdown > 0" @click="sendCode" :style="{ fontSize: `calc(13px * ${fontScale})` }">
               {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
@@ -89,7 +89,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onUnmounted } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { useThemeStore } from '@/store/theme';
 import { useUserStore } from '@/store/user';
@@ -112,6 +112,15 @@ const countdown = ref(0);
 
 let timer: ReturnType<typeof setInterval> | null = null;
 
+const backOrHome = () => {
+  const pages = getCurrentPages();
+  if (pages.length > 1) {
+    uni.navigateBack();
+    return;
+  }
+  uni.switchTab({ url: '/pages/index/index' });
+};
+
 const handleWxLogin = async () => {
   try {
     uni.showLoading({ title: '登录中...' });
@@ -133,9 +142,13 @@ const handleWxLogin = async () => {
         step.value = 'bind';
       } else {
         uni.showToast({ title: '登录成功', icon: 'success' });
-        setTimeout(() => uni.navigateBack(), 1000);
+        setTimeout(() => backOrHome(), 1000);
       }
+    } else {
+      uni.showToast({ title: '登录失败，请重试', icon: 'none' });
     }
+  } catch {
+    uni.showToast({ title: '微信登录失败', icon: 'none' });
   } finally {
     uni.hideLoading();
   }
@@ -149,7 +162,7 @@ const handleGetPhone = async (e: any) => {
     const success = await userStore.bindPhone(e.detail.encryptedData, e.detail.iv);
     if (success) {
       uni.showToast({ title: '绑定成功', icon: 'success' });
-      setTimeout(() => uni.navigateBack(), 1000);
+      setTimeout(() => backOrHome(), 1000);
     }
   } finally {
     uni.hideLoading();
@@ -188,19 +201,26 @@ const handleManualBind = async () => {
     uni.showLoading({ title: '绑定中...' });
     await userStore.bindPhoneManual(phone.value, code.value);
     uni.showToast({ title: '绑定成功', icon: 'success' });
-    setTimeout(() => uni.navigateBack(), 1000);
+    setTimeout(() => backOrHome(), 1000);
   } finally {
     uni.hideLoading();
   }
 };
 
 const skipBind = () => {
-  uni.navigateBack();
+  backOrHome();
 };
 
 onLoad(() => {
   if (userStore.isLoggedIn && !userStore.userInfo?.mobile) {
     step.value = 'bind';
+  }
+});
+
+onUnmounted(() => {
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
   }
 });
 </script>
@@ -256,7 +276,16 @@ onLoad(() => {
 }
 
 .logo-emoji {
-  font-size: 80rpx;
+  width: 90rpx;
+  height: 90rpx;
+  border-radius: 22rpx;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44rpx;
+  color: #fff;
+  font-weight: 700;
 }
 
 .app-name {
@@ -317,7 +346,16 @@ onLoad(() => {
 }
 
 .feature-icon {
-  font-size: 40rpx;
+  width: 46rpx;
+  height: 46rpx;
+  border-radius: 12rpx;
+  background: #eef2f5;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  font-weight: 700;
 }
 
 .feature-text {
@@ -341,7 +379,15 @@ onLoad(() => {
 }
 
 .wx-icon {
-  font-size: 40rpx;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 10rpx;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  font-weight: 700;
 }
 
 .login-tips {
@@ -372,7 +418,15 @@ onLoad(() => {
 }
 
 .phone-icon {
-  font-size: 36rpx;
+  width: 38rpx;
+  height: 38rpx;
+  border-radius: 10rpx;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22rpx;
+  font-weight: 700;
 }
 
 // 分隔线
@@ -411,7 +465,16 @@ onLoad(() => {
 }
 
 .input-icon {
-  font-size: 32rpx;
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 10rpx;
+  background: #eef2f5;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18rpx;
+  font-weight: 700;
 }
 
 .form-input {
