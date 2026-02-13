@@ -428,6 +428,10 @@ const stripHtml = (html: string) => {
   return text.length > 80 ? `${text.slice(0, 80)}...` : text;
 };
 
+const adjustCount = (value: any, delta: number) => {
+  return Math.max(0, Number(value || 0) + delta);
+};
+
 const patchPostStatuses = async (list: any[]) => {
   if (!userStore.isLoggedIn || !list.length) return list;
   const ids = list.map((item) => Number(item.id)).filter((id) => Number.isFinite(id) && id > 0);
@@ -743,14 +747,17 @@ const openItem = (item: any) => {
 
   const postId = item.id;
   if (postId) {
-    uni.navigateTo({ url: `/pages/detail/detail?id=${postId}` });
+    const targetUrl = Number(item?.type) === 2
+      ? `/pages/video/video?id=${postId}`
+      : `/pages/detail/detail?id=${postId}`;
+    uni.navigateTo({ url: targetUrl });
   }
 };
 
 const togglePostLike = async (item: any) => {
   const prev = !!item.isLiked;
   item.isLiked = !prev;
-  item.likeCount = Number(item.likeCount || 0) + (item.isLiked ? 1 : -1);
+  item.likeCount = adjustCount(item.likeCount, item.isLiked ? 1 : -1);
 
   try {
     if (item.isLiked) {
@@ -760,7 +767,7 @@ const togglePostLike = async (item: any) => {
     }
   } catch {
     item.isLiked = prev;
-    item.likeCount = Number(item.likeCount || 0) + (item.isLiked ? 1 : -1);
+    item.likeCount = adjustCount(item.likeCount, item.isLiked ? 1 : -1);
     uni.showToast({ title: '操作失败', icon: 'none' });
   }
 };
@@ -768,7 +775,7 @@ const togglePostLike = async (item: any) => {
 const togglePostCollect = async (item: any) => {
   const prev = !!item.isCollected;
   item.isCollected = !prev;
-  item.collectCount = Number(item.collectCount || 0) + (item.isCollected ? 1 : -1);
+  item.collectCount = adjustCount(item.collectCount, item.isCollected ? 1 : -1);
 
   try {
     if (item.isCollected) {
@@ -781,7 +788,7 @@ const togglePostCollect = async (item: any) => {
     }
   } catch {
     item.isCollected = prev;
-    item.collectCount = Number(item.collectCount || 0) + (item.isCollected ? 1 : -1);
+    item.collectCount = adjustCount(item.collectCount, item.isCollected ? 1 : -1);
     uni.showToast({ title: '操作失败', icon: 'none' });
   }
 };

@@ -282,7 +282,7 @@ const handleLike = async (item: any) => {
 
   const prev = !!item.isLiked;
   item.isLiked = !prev;
-  item.likeCount = Number(item.likeCount || 0) + (item.isLiked ? 1 : -1);
+  item.likeCount = Math.max(0, Number(item.likeCount || 0) + (item.isLiked ? 1 : -1));
 
   try {
     if (item.isLiked) {
@@ -292,7 +292,7 @@ const handleLike = async (item: any) => {
     }
   } catch (error) {
     item.isLiked = prev;
-    item.likeCount = Number(item.likeCount || 0) + (item.isLiked ? 1 : -1);
+    item.likeCount = Math.max(0, Number(item.likeCount || 0) + (item.isLiked ? 1 : -1));
   }
 };
 

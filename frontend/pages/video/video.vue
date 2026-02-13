@@ -368,7 +368,7 @@ const handleLike = async (item: any) => {
   if (!userStore.requireLogin()) return;
   const prev = !!item.isLiked;
   item.isLiked = !prev;
-  item.likeCount = Number(item.likeCount || 0) + (item.isLiked ? 1 : -1);
+  item.likeCount = Math.max(0, Number(item.likeCount || 0) + (item.isLiked ? 1 : -1));
   try {
     if (item.isLiked) {
       await interactionApi.like({ targetId: item.id, targetType: 'post' });
@@ -377,7 +377,7 @@ const handleLike = async (item: any) => {
     }
   } catch {
     item.isLiked = prev;
-    item.likeCount = Number(item.likeCount || 0) + (item.isLiked ? 1 : -1);
+    item.likeCount = Math.max(0, Number(item.likeCount || 0) + (item.isLiked ? 1 : -1));
   }
 };
 
@@ -385,7 +385,7 @@ const handleCollect = async (item: any) => {
   if (!userStore.requireLogin()) return;
   const prev = !!item.isCollected;
   item.isCollected = !prev;
-  item.collectCount = (item.collectCount || 0) + (item.isCollected ? 1 : -1);
+  item.collectCount = Math.max(0, Number(item.collectCount || 0) + (item.isCollected ? 1 : -1));
   try {
     if (item.isCollected) {
       await interactionApi.collect({ targetId: item.id, targetType: 'post' });
@@ -394,7 +394,7 @@ const handleCollect = async (item: any) => {
     }
   } catch {
     item.isCollected = prev;
-    item.collectCount = (item.collectCount || 0) + (item.isCollected ? 1 : -1);
+    item.collectCount = Math.max(0, Number(item.collectCount || 0) + (item.isCollected ? 1 : -1));
   }
 };
 

@@ -248,7 +248,7 @@ const handleLike = async () => {
   if (!userStore.requireLogin() || !article.value) return;
   const prev = !!article.value.isLiked;
   article.value.isLiked = !prev;
-  article.value.likeCount = Number(article.value.likeCount || 0) + (article.value.isLiked ? 1 : -1);
+  article.value.likeCount = Math.max(0, Number(article.value.likeCount || 0) + (article.value.isLiked ? 1 : -1));
   try {
     if (article.value.isLiked) {
       await interactionApi.like({ targetId: article.value.id, targetType: 'post' });
@@ -257,7 +257,7 @@ const handleLike = async () => {
     }
   } catch {
     article.value.isLiked = prev;
-    article.value.likeCount = Number(article.value.likeCount || 0) + (article.value.isLiked ? 1 : -1);
+    article.value.likeCount = Math.max(0, Number(article.value.likeCount || 0) + (article.value.isLiked ? 1 : -1));
   }
 };
 
@@ -265,7 +265,7 @@ const handleCollect = async () => {
   if (!userStore.requireLogin() || !article.value) return;
   const prev = !!article.value.isCollected;
   article.value.isCollected = !prev;
-  article.value.collectCount = Number(article.value.collectCount || 0) + (article.value.isCollected ? 1 : -1);
+  article.value.collectCount = Math.max(0, Number(article.value.collectCount || 0) + (article.value.isCollected ? 1 : -1));
   try {
     if (article.value.isCollected) {
       await interactionApi.collect({ targetId: article.value.id, targetType: 'post' });
@@ -274,7 +274,7 @@ const handleCollect = async () => {
     }
   } catch {
     article.value.isCollected = prev;
-    article.value.collectCount = Number(article.value.collectCount || 0) + (article.value.isCollected ? 1 : -1);
+    article.value.collectCount = Math.max(0, Number(article.value.collectCount || 0) + (article.value.isCollected ? 1 : -1));
   }
 };
 
