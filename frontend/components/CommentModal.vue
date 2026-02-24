@@ -79,7 +79,7 @@ const loadMore = () => loadComments();
 const handleLike = async (item: any) => {
   if (!userStore.requireLogin()) return;
   item.isLiked = !item.isLiked;
-  item.likeCount += item.isLiked ? 1 : -1;
+  item.likeCount = Math.max(0, Number(item.likeCount || 0) + (item.isLiked ? 1 : -1));
   try {
     if (item.isLiked) {
       await commentApi.like(item.id);
@@ -88,7 +88,7 @@ const handleLike = async (item: any) => {
     }
   } catch {
     item.isLiked = !item.isLiked;
-    item.likeCount += item.isLiked ? 1 : -1;
+    item.likeCount = Math.max(0, Number(item.likeCount || 0) + (item.isLiked ? 1 : -1));
   }
 };
 
@@ -101,20 +101,25 @@ const submitComment = async () => {
       postId: props.postId,
       content: inputText.value,
     });
-    comments.value.unshift({
-      id: res.id,
-      content: inputText.value,
-      createdAt: res.createdAt || new Date().toISOString(),
-      likeCount: 0,
-      isLiked: false,
-      user: {
-        avatarUrl: userStore.userInfo?.avatarUrl || '/static/default-avatar.png',
-        nickname: userStore.userInfo?.nickname || '我',
-      },
-    });
+
+    const auditStatus = Number(res?.auditStatus ?? 1);
+    if (auditStatus === 1) {
+      comments.value.unshift({
+        id: res.id,
+        content: inputText.value,
+        createdAt: res.createdAt || new Date().toISOString(),
+        likeCount: 0,
+        isLiked: false,
+        user: {
+          avatarUrl: userStore.userInfo?.avatarUrl || '/static/default-avatar.png',
+          nickname: userStore.userInfo?.nickname || '我',
+        },
+      });
+      emit('submitted', { postId: props.postId });
+    }
+
     inputText.value = '';
-    emit('submitted', { postId: props.postId });
-    uni.showToast({ title: '评论成功', icon: 'success' });
+    uni.showToast({ title: res?.message || '评论已提交，审核后展示', icon: 'none' });
   } catch {
     uni.showToast({ title: '评论失败', icon: 'none' });
   }

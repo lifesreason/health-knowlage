@@ -17,8 +17,8 @@ export class Comment {
   @Column({ type: 'bigint', default: 0, name: 'root_id' })
   rootId: number; // 0 为一级评论
 
-  @Column({ type: 'bigint', default: 0, name: 'reply_to_user_id' })
-  replyToUserId: number;
+  @Column({ type: 'int', nullable: true, default: null, name: 'reply_to_user_id' })
+  replyToUserId: number | null;
 
   @Column({ type: 'varchar', length: 1024 })
   content: string;
@@ -26,8 +26,8 @@ export class Comment {
   @Column({ type: 'int', default: 0, name: 'like_count' })
   likeCount: number;
 
-  @Column({ type: 'tinyint', default: 1, name: 'audit_status' })
-  auditStatus: number; // 1: 通过, 2: 屏蔽
+  @Column({ type: 'tinyint', default: 0, name: 'audit_status' })
+  auditStatus: number; // 0: 待审核, 1: 通过, 2: 驳回
 
   @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP', name: 'created_at' })
   createdAt: Date;

@@ -24,17 +24,20 @@ export class CommentController {
   @ApiQuery({ name: 'pageSize', required: false })
   @ApiQuery({ name: 'keyword', required: false })
   @ApiQuery({ name: 'postId', required: false })
+  @ApiQuery({ name: 'status', required: false, description: '审核状态: 0待审 1通过 2驳回' })
   async getAdminCommentList(
     @Query('page') page: string = '1',
     @Query('pageSize') pageSize: string = '20',
     @Query('keyword') keyword?: string,
     @Query('postId') postId?: string,
+    @Query('status') status?: string,
   ) {
     return this.commentService.getAdminCommentList({
       page: +page,
       pageSize: +pageSize,
       keyword,
       postId: postId ? +postId : undefined,
+      status: status !== undefined ? +status : undefined,
     });
   }
 
@@ -48,6 +51,46 @@ export class CommentController {
   @ApiOperation({ summary: '删除评论（管理后台）' })
   async adminDeleteComment(@Param('id') id: string) {
     return this.commentService.adminDeleteComment(+id);
+  }
+
+  /**
+   * 审核通过评论（管理后台）
+   */
+  @Post('admin/:id/approve')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(9)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '审核通过评论（管理后台）' })
+  async adminApproveComment(@Param('id') id: string, @Request() req) {
+    return this.commentService.approveComment(+id, req.user?.username || 'ADMIN');
+  }
+
+  /**
+   * 审核驳回评论（管理后台）
+   */
+  @Post('admin/:id/reject')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(9)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '审核驳回评论（管理后台）' })
+  async adminRejectComment(@Param('id') id: string, @Request() req) {
+    return this.commentService.rejectComment(+id, req.user?.username || 'ADMIN');
+  }
+
+  /**
+   * 批量审核评论（管理后台）
+   */
+  @Post('admin/batch-audit')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(9)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '批量审核评论（管理后台）' })
+  async adminBatchAudit(
+    @Body('commentIds') commentIds: number[],
+    @Body('action') action: 'approve' | 'reject',
+    @Request() req,
+  ) {
+    return this.commentService.batchAuditComments(commentIds, action, req.user?.username || 'ADMIN');
   }
 
   // ========== 小程序接口 ==========
@@ -70,8 +113,9 @@ export class CommentController {
     return {
       id: comment.id,
       content: comment.content,
+      auditStatus: comment.auditStatus,
       createdAt: comment.createdAt,
-      message: '评论成功',
+      message: comment.auditStatus === 1 ? '评论成功' : '评论已提交，审核后展示',
     };
   }
 

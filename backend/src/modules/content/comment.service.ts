@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Comment } from '../../entities/comment.entity';
 import { Post } from '../../entities/post.entity';
 import { Like } from '../../entities/like.entity';
@@ -38,17 +38,12 @@ export class CommentService {
       userId,
       ...data,
       rootId: data.rootId || 0,
-      replyToUserId: data.replyToUserId || 0,
+      replyToUserId: data.replyToUserId || null,
       likeCount: 0,
-      auditStatus: 1, // 先发后审
+      auditStatus: 0, // 先审后发
     });
 
-    const saved = await this.commentRepository.save(comment);
-
-    // 更新帖子评论数
-    await this.postRepository.increment({ id: data.postId }, 'commentCount', 1);
-
-    return saved;
+    return this.commentRepository.save(comment);
   }
 
   /**
@@ -107,8 +102,10 @@ export class CommentService {
 
     await this.commentRepository.update(commentId, { isDeleted: true });
 
-    // 更新帖子评论数
-    await this.postRepository.decrement({ id: comment.postId }, 'commentCount', 1);
+    // 仅已通过的评论会计入评论数
+    if (comment.auditStatus === 1) {
+      await this.postRepository.decrement({ id: comment.postId }, 'commentCount', 1);
+    }
 
     return { message: '删除成功' };
   }
@@ -164,8 +161,9 @@ export class CommentService {
     pageSize: number;
     keyword?: string;
     postId?: number;
+    status?: number;
   }) {
-    const { page, pageSize, keyword, postId } = params;
+    const { page, pageSize, keyword, postId, status } = params;
     const skip = (page - 1) * pageSize;
 
     const queryBuilder = this.commentRepository
@@ -180,6 +178,9 @@ export class CommentService {
 
     if (postId) {
       queryBuilder.andWhere('comment.postId = :postId', { postId });
+    }
+    if (status !== undefined) {
+      queryBuilder.andWhere('comment.auditStatus = :status', { status });
     }
 
     queryBuilder
@@ -208,9 +209,89 @@ export class CommentService {
 
     if (comment) {
       await this.commentRepository.update(commentId, { isDeleted: true });
-      await this.postRepository.decrement({ id: comment.postId }, 'commentCount', 1);
+      if (comment.auditStatus === 1) {
+        await this.postRepository.decrement({ id: comment.postId }, 'commentCount', 1);
+      }
     }
 
     return { success: true };
+  }
+
+  /**
+   * 评论审核通过（管理后台）
+   */
+  async approveComment(commentId: number, _operator: string) {
+    const comment = await this.commentRepository.findOne({
+      where: { id: commentId, isDeleted: false },
+    });
+    if (!comment) {
+      throw new NotFoundException('评论不存在');
+    }
+
+    if (comment.auditStatus === 1) {
+      return { success: true, status: 'already_approved' };
+    }
+
+    await this.commentRepository.update(commentId, { auditStatus: 1 });
+    await this.postRepository.increment({ id: comment.postId }, 'commentCount', 1);
+    return { success: true };
+  }
+
+  /**
+   * 评论审核驳回（管理后台）
+   */
+  async rejectComment(commentId: number, _operator: string) {
+    const comment = await this.commentRepository.findOne({
+      where: { id: commentId, isDeleted: false },
+    });
+    if (!comment) {
+      throw new NotFoundException('评论不存在');
+    }
+
+    if (comment.auditStatus === 2) {
+      return { success: true, status: 'already_rejected' };
+    }
+
+    await this.commentRepository.update(commentId, { auditStatus: 2 });
+    if (comment.auditStatus === 1) {
+      await this.postRepository.decrement({ id: comment.postId }, 'commentCount', 1);
+    }
+    return { success: true };
+  }
+
+  /**
+   * 批量审核评论（管理后台）
+   */
+  async batchAuditComments(commentIds: number[], action: 'approve' | 'reject', operator: string) {
+    const ids = Array.from(
+      new Set(
+        (commentIds || [])
+          .map((item) => Number(item))
+          .filter((item) => Number.isFinite(item) && item > 0),
+      ),
+    );
+
+    if (!ids.length) {
+      return { success: true, count: 0 };
+    }
+
+    const comments = await this.commentRepository.find({
+      where: {
+        id: In(ids),
+        isDeleted: false,
+      },
+      select: ['id'],
+    });
+    const validIds = comments.map((item) => item.id);
+
+    for (const id of validIds) {
+      if (action === 'approve') {
+        await this.approveComment(id, operator);
+      } else {
+        await this.rejectComment(id, operator);
+      }
+    }
+
+    return { success: true, count: validIds.length };
   }
 }
