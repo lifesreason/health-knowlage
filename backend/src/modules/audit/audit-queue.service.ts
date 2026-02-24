@@ -30,8 +30,10 @@ export class AuditQueueService implements OnModuleDestroy {
 
   async enqueuePost(postId: number) {
     const value = String(postId);
-    this.fallbackQueue.push(postId);
-    await this.safeRedisCall(() => this.redis.lpush('sh:audit:queue', value));
+    const redisResult = await this.safeRedisCall(() => this.redis.lpush('sh:audit:queue', value));
+    if (redisResult === null) {
+      this.fallbackQueue.push(postId);
+    }
   }
 
   async dequeuePost(): Promise<number | null> {
