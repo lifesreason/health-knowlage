@@ -1,6 +1,6 @@
 # 项目开发进度
 
-## 当前状态（2026-02-12）
+## 当前状态（2026-02-24）
 
 项目已完成核心可用链路，包含：
 - 小程序登录与手机号绑定（微信授权 + 手动验证码）
@@ -8,6 +8,7 @@
 - 管理后台登录与后台接口权限收敛（JWT + 管理员角色）
 - 圈子浏览/加入/退出
 - 审核后台基础能力
+- 评论“先审后发”闭环（用户提交待审 + 管理端评论审核）
 
 当前仍有部分扩展能力未闭环（见“待完善项”）。
 
@@ -39,6 +40,7 @@
 - [x] 点赞：帖子点赞 / 取消点赞
 - [x] 收藏：帖子收藏 / 取消收藏（真实落库）
 - [x] 我的收藏列表接口
+- [x] 我的发布状态筛选：已发布 / 审核中 / 驳回，并支持驳回后重新发布引导
 
 ### Phase 3: 管理后台与安全治理（基础） ✅
 - [x] 管理后台页面基础框架
@@ -57,10 +59,9 @@
 ## 待完善项
 
 ### 功能待完善
-- [ ] `feed` 的 `nearby/follow` 仍复用推荐查询，尚未实现个性化逻辑
-- [ ] 关注/粉丝关系（`interaction/follow*`）后端未实现
-- [ ] 浏览历史接口后端未实现
-- [ ] 自动机审链路（队列消费者 + 三方内容审核 API）未接入
+- [ ] Feed 个性化策略仍可增强（当前已支持推荐/关注/附近分流，附近无定位时按时间+互动降级）
+- [ ] 自动机审云侧生产参数仍待开通（当前可由人工审核兜底）
+- [ ] 隐私设置目前为前端本地配置，尚未落库到后端
 
 ### 测试与上线待完善
 - [ ] 单元测试
@@ -86,9 +87,13 @@
 - `PUT /api/v1/user/profile`
 - `GET /api/v1/user/my-stats`
 - `GET /api/v1/user/collections`
+- `POST /api/v1/user/history`
+- `GET /api/v1/user/history`
 
 ### 内容模块
 - `GET /api/v1/feed/list`
+- `GET /api/v1/feed/nearby`
+- `GET /api/v1/feed/following`
 - `GET /api/v1/feed/videos`
 - `GET /api/v1/post/search`
 - `POST /api/v1/post/publish`
@@ -102,6 +107,11 @@
 - `DELETE /api/v1/interaction/like`
 - `POST /api/v1/interaction/collect`
 - `DELETE /api/v1/interaction/collect`
+- `POST /api/v1/interaction/follow`
+- `GET /api/v1/interaction/following`
+- `GET /api/v1/interaction/followers`
+- `GET /api/v1/interaction/post-status`
+- `GET /api/v1/interaction/post-status/batch`
 
 ### 圈子模块
 - `GET /api/v1/circle/list`
@@ -117,6 +127,10 @@
 - `DELETE /api/v1/comment/:id`
 - `POST /api/v1/comment/:id/like`
 - `DELETE /api/v1/comment/:id/like`
+- `GET /api/v1/comment/admin/list`
+- `POST /api/v1/comment/admin/:id/approve`
+- `POST /api/v1/comment/admin/:id/reject`
+- `POST /api/v1/comment/admin/batch-audit`
 
 ### 审核与统计模块（管理员）
 - `GET /api/v1/audit/pending`

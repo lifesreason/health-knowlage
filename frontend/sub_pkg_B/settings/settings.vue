@@ -2,7 +2,7 @@
   <view class="settings-page" :style="{ '--font-scale': fontScale }">
     <view class="tab-header" v-if="currentTab !== 'default'">
       <view class="back-btn" @click="goDefault">
-        <text class="back-arrow">‹</text>
+        <image class="back-arrow-image" src="/static/icons/common-arrow-right-dark.png" mode="aspectFit"></image>
       </view>
       <text class="tab-title" :style="{ fontSize: `calc(16px * ${fontScale})` }">{{ currentTabTitle }}</text>
       <view class="header-spacer"></view>
@@ -19,7 +19,9 @@
       <template v-if="currentTab === 'default'">
         <view class="section">
           <view class="section-title-wrap">
-            <view class="icon-badge icon-font">A</view>
+            <view class="icon-badge icon-font">
+              <image class="icon-badge-image" src="/static/icons/section-font.png" mode="aspectFit"></image>
+            </view>
             <text class="section-title" :style="{ fontSize: `calc(15px * ${fontScale})` }">字体设置</text>
           </view>
           <view class="font-scale-wrap">
@@ -37,47 +39,51 @@
 
         <view class="section">
           <view class="section-title-wrap">
-            <view class="icon-badge icon-user">U</view>
+            <view class="icon-badge icon-user">
+              <image class="icon-badge-image" src="/static/icons/section-user.png" mode="aspectFit"></image>
+            </view>
             <text class="section-title" :style="{ fontSize: `calc(15px * ${fontScale})` }">我的内容</text>
           </view>
           <view class="menu-item" @click="openTab('posts')">
             <text class="menu-label">我的发布</text>
-            <text class="menu-arrow">›</text>
+            <image class="menu-arrow-image" src="/static/icons/common-arrow-right-muted.png" mode="aspectFit"></image>
           </view>
           <view class="menu-item" @click="openTab('collections')">
             <text class="menu-label">我的收藏</text>
-            <text class="menu-arrow">›</text>
+            <image class="menu-arrow-image" src="/static/icons/common-arrow-right-muted.png" mode="aspectFit"></image>
           </view>
           <view class="menu-item" @click="openTab('history')">
             <text class="menu-label">浏览历史</text>
-            <text class="menu-arrow">›</text>
+            <image class="menu-arrow-image" src="/static/icons/common-arrow-right-muted.png" mode="aspectFit"></image>
           </view>
           <view class="menu-item" @click="openTab('circles')">
             <text class="menu-label">我的圈子</text>
-            <text class="menu-arrow">›</text>
+            <image class="menu-arrow-image" src="/static/icons/common-arrow-right-muted.png" mode="aspectFit"></image>
           </view>
           <view class="menu-item" @click="openTab('following')">
             <text class="menu-label">我的关注</text>
-            <text class="menu-arrow">›</text>
+            <image class="menu-arrow-image" src="/static/icons/common-arrow-right-muted.png" mode="aspectFit"></image>
           </view>
           <view class="menu-item" @click="openTab('followers')">
             <text class="menu-label">我的粉丝</text>
-            <text class="menu-arrow">›</text>
+            <image class="menu-arrow-image" src="/static/icons/common-arrow-right-muted.png" mode="aspectFit"></image>
           </view>
         </view>
 
         <view class="section">
           <view class="section-title-wrap">
-            <view class="icon-badge icon-setting">S</view>
+            <view class="icon-badge icon-setting">
+              <image class="icon-badge-image" src="/static/icons/section-setting.png" mode="aspectFit"></image>
+            </view>
             <text class="section-title" :style="{ fontSize: `calc(15px * ${fontScale})` }">账号与隐私</text>
           </view>
           <view class="menu-item" @click="openTab('profile')">
             <text class="menu-label">个人资料</text>
-            <text class="menu-arrow">›</text>
+            <image class="menu-arrow-image" src="/static/icons/common-arrow-right-muted.png" mode="aspectFit"></image>
           </view>
           <view class="menu-item" @click="openTab('privacy')">
             <text class="menu-label">隐私设置</text>
-            <text class="menu-arrow">›</text>
+            <image class="menu-arrow-image" src="/static/icons/common-arrow-right-muted.png" mode="aspectFit"></image>
           </view>
           <view class="menu-item" @click="clearCache">
             <text class="menu-label">清除缓存</text>
@@ -87,7 +93,9 @@
 
         <view class="section">
           <view class="section-title-wrap">
-            <view class="icon-badge icon-doc">i</view>
+            <view class="icon-badge icon-doc">
+              <image class="icon-badge-image" src="/static/icons/section-doc.png" mode="aspectFit"></image>
+            </view>
             <text class="section-title" :style="{ fontSize: `calc(15px * ${fontScale})` }">关于与协议</text>
           </view>
           <view class="menu-item" @click="openTab('about')">
@@ -96,11 +104,11 @@
           </view>
           <view class="menu-item" @click="openTab('agreement')">
             <text class="menu-label">用户协议</text>
-            <text class="menu-arrow">›</text>
+            <image class="menu-arrow-image" src="/static/icons/common-arrow-right-muted.png" mode="aspectFit"></image>
           </view>
           <view class="menu-item" @click="openTab('policy')">
             <text class="menu-label">隐私政策</text>
-            <text class="menu-arrow">›</text>
+            <image class="menu-arrow-image" src="/static/icons/common-arrow-right-muted.png" mode="aspectFit"></image>
           </view>
         </view>
       </template>
@@ -216,6 +224,7 @@
           <view class="post-filter">
             <view class="filter-pill" :class="{ active: postStatus === 'published' }" @click="switchPostStatus('published')">已发布</view>
             <view class="filter-pill" :class="{ active: postStatus === 'audit' }" @click="switchPostStatus('audit')">审核中</view>
+            <view class="filter-pill" :class="{ active: postStatus === 'rejected' }" @click="switchPostStatus('rejected')">未通过</view>
           </view>
         </view>
 
@@ -255,6 +264,9 @@
             <template v-else>
               <text class="list-title">{{ item.title || '无标题' }}</text>
               <text class="list-desc">{{ stripHtml(item.content || '') }}</text>
+              <view v-if="currentTab === 'posts' && postStatus === 'rejected' && item.rejectReason" class="reject-reason">
+                驳回原因：{{ item.rejectReason }}
+              </view>
               <view class="post-metrics" v-if="currentTab === 'posts' || currentTab === 'collections' || currentTab === 'history'">
                 <text class="metric-text" :class="{ active: item.isLiked }">赞 {{ item.likeCount || 0 }}</text>
                 <text class="metric-text">评 {{ item.commentCount || 0 }}</text>
@@ -353,7 +365,7 @@ const refreshing = ref(false);
 const fontScales = FONT_SCALES;
 const cacheSize = ref('0MB');
 
-const postStatus = ref<'published' | 'audit'>('published');
+const postStatus = ref<'published' | 'audit' | 'rejected'>('published');
 const likesStats = ref<any>({});
 const commentModalVisible = ref(false);
 const commentPostId = ref(0);
@@ -730,7 +742,7 @@ const onPrivacyChange = (key: keyof typeof privacySettings, e: any) => {
   uni.setStorageSync('privacySettings', privacySettings);
 };
 
-const switchPostStatus = async (status: 'published' | 'audit') => {
+const switchPostStatus = async (status: 'published' | 'audit' | 'rejected') => {
   if (postStatus.value === status) return;
   postStatus.value = status;
   await loadTabData('posts', true);
@@ -742,6 +754,25 @@ const openItem = (item: any) => {
     return;
   }
   if (currentTab.value === 'following' || currentTab.value === 'followers') {
+    return;
+  }
+  if (currentTab.value === 'posts' && postStatus.value === 'rejected') {
+    const reason = item?.rejectReason || '内容不符合发布规范，请修改后重新发布。';
+    uni.showModal({
+      title: '审核未通过',
+      content: reason,
+      confirmText: '去修改',
+      success: (res) => {
+        if (!res.confirm) return;
+        uni.setStorageSync('republishDraft', {
+          title: item?.title || '',
+          content: item?.content || '',
+          type: Number(item?.type || 1),
+          circleId: Number(item?.circleId || 0),
+        });
+        uni.navigateTo({ url: '/sub_pkg_A/publisher/publisher?mode=republish' });
+      },
+    });
     return;
   }
 
@@ -916,18 +947,30 @@ onShow(async () => {
 }
 
 .back-btn {
-  width: 64rpx;
-  height: 64rpx;
-  border-radius: 50%;
-  background: #f7f1ee;
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 44rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+
+  &::before {
+    content: '';
+    width: 64rpx;
+    height: 64rpx;
+    border-radius: 50%;
+    background: #f7f1ee;
+    position: absolute;
+  }
 }
 
-.back-arrow {
-  font-size: 40rpx;
-  color: #704c3f;
+.back-arrow-image {
+  width: 24rpx;
+  height: 24rpx;
+  transform: rotate(180deg);
+  position: relative;
+  z-index: 1;
 }
 
 .tab-title {
@@ -971,6 +1014,11 @@ onShow(async () => {
   font-weight: 700;
 }
 
+.icon-badge-image {
+  width: 24rpx;
+  height: 24rpx;
+}
+
 .icon-font { background: linear-gradient(145deg, #ff9a6b, #e17055); }
 .icon-user { background: linear-gradient(145deg, #6db8ff, #3779ff); }
 .icon-setting { background: linear-gradient(145deg, #77d4ad, #2fb88a); }
@@ -1000,9 +1048,9 @@ onShow(async () => {
   color: #8b837d;
 }
 
-.menu-arrow {
-  font-size: 32rpx;
-  color: #c6beb9;
+.menu-arrow-image {
+  width: 24rpx;
+  height: 24rpx;
 }
 
 .font-scale-wrap {
@@ -1212,6 +1260,16 @@ onShow(async () => {
   font-size: calc(13px * var(--font-scale));
   color: #7d746e;
   line-height: 1.6;
+}
+
+.reject-reason {
+  margin-top: 10rpx;
+  padding: 10rpx 12rpx;
+  border-radius: 10rpx;
+  background: #fff2ef;
+  color: #bf5b47;
+  font-size: calc(12px * var(--font-scale));
+  line-height: 1.5;
 }
 
 .list-footer {

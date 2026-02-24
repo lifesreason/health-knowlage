@@ -10,14 +10,14 @@
         </view>
         <view class="header-actions">
           <view class="action-btn" @click="goToSearch">
-            <text class="action-icon">搜</text>
+            <image class="action-icon-image" src="/static/icons/home-search-btn.png" mode="aspectFit"></image>
           </view>
         </view>
       </view>
       
       <!-- 搜索栏 -->
       <view class="search-bar" @click="goToSearch">
-        <text class="search-icon">⌕</text>
+        <image class="search-icon-image" src="/static/icons/home-search-field.png" mode="aspectFit"></image>
         <text class="search-placeholder" :style="{ fontSize: `calc(14px * ${fontScale})` }">搜索健康知识、医师、圈子...</text>
       </view>
     </view>
@@ -99,7 +99,7 @@
 
     <!-- 发布按钮 -->
     <view class="publish-btn" @click="goToPublish">
-      <text class="publish-icon">发</text>
+      <image class="publish-icon-image" src="/static/icons/home-publish.png" mode="aspectFit"></image>
     </view>
   </view>
 </template>
@@ -368,10 +368,9 @@ onReachBottom(() => {
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
 }
 
-.action-icon {
-  font-size: 28rpx;
-  color: #e17055;
-  font-weight: 700;
+.action-icon-image {
+  width: 32rpx;
+  height: 32rpx;
 }
 
 // 搜索栏
@@ -387,9 +386,9 @@ onReachBottom(() => {
   border: 2rpx solid #ffeee8;
 }
 
-.search-icon {
-  font-size: 28rpx;
-  color: #b17866;
+.search-icon-image {
+  width: 30rpx;
+  height: 30rpx;
 }
 
 .search-placeholder {
@@ -577,9 +576,8 @@ onReachBottom(() => {
   z-index: 100;
 }
 
-.publish-icon {
-  font-size: 32rpx;
-  color: #fff;
-  font-weight: 700;
+.publish-icon-image {
+  width: 44rpx;
+  height: 44rpx;
 }
 </style>

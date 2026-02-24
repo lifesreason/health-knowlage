@@ -1,12 +1,14 @@
 <template>
   <view class="empty-state">
     <view class="empty-illustration">
-      <text class="empty-icon">{{ iconMap[type] || '空' }}</text>
+      <view class="empty-icon">
+        <image class="empty-icon-image" :src="iconImageMap[type || 'empty'] || iconImageMap.empty" mode="aspectFit"></image>
+      </view>
     </view>
     <text class="empty-title">{{ titleMap[type] || '暂无内容' }}</text>
     <text class="empty-message">{{ message }}</text>
     <button v-if="showRetry" class="retry-btn" @click="$emit('retry')">
-      <text class="retry-icon">重</text>
+      <image class="retry-icon-image" src="/static/icons/home-search-btn.png" mode="aspectFit"></image>
       <text>重新加载</text>
     </button>
   </view>
@@ -21,11 +23,11 @@ defineProps<{
 
 defineEmits(['retry']);
 
-const iconMap: Record<string, string> = {
-  empty: '空',
-  error: '错',
-  network: '网',
-  deleted: '删',
+const iconImageMap: Record<string, string> = {
+  empty: '/static/icons/detail-poster.png',
+  error: '/static/icons/detail-share.png',
+  network: '/static/icons/home-search-field.png',
+  deleted: '/static/icons/detail-collect.png',
 };
 
 const titleMap: Record<string, string> = {
@@ -61,12 +63,14 @@ const titleMap: Record<string, string> = {
   height: 84rpx;
   border-radius: 22rpx;
   background: #ffe9e2;
-  color: #d25f45;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 38rpx;
-  font-weight: 700;
+}
+
+.empty-icon-image {
+  width: 46rpx;
+  height: 46rpx;
 }
 
 .empty-title {
@@ -96,15 +100,8 @@ const titleMap: Record<string, string> = {
   box-shadow: 0 8rpx 24rpx rgba(225, 112, 85, 0.3);
 }
 
-.retry-icon {
+.retry-icon-image {
   width: 30rpx;
   height: 30rpx;
-  border-radius: 8rpx;
-  background: rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20rpx;
-  font-weight: 700;
 }
 </style>

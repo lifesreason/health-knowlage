@@ -236,14 +236,16 @@ export class PostService {
    * 获取我的发布列表
    */
   async getMyPosts(userId: number, params: {
-    status: 'published' | 'audit';
+    status: 'published' | 'audit' | 'rejected';
     page: number;
     pageSize: number;
   }) {
     const { status, page, pageSize } = params;
     const skip = (page - 1) * pageSize;
 
-    const auditStatus = status === 'published' ? 1 : 0;
+    let auditStatus = 0;
+    if (status === 'published') auditStatus = 1;
+    if (status === 'rejected') auditStatus = 2;
 
     const queryBuilder = this.postRepository
       .createQueryBuilder('post')

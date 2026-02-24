@@ -11,7 +11,9 @@
       <!-- 顶部圈子标签 -->
       <view class="circle-header" v-if="article.circle">
         <view class="circle-tag">
-          <text class="circle-icon">圈</text>
+          <view class="circle-icon">
+            <image class="circle-icon-image" src="/static/icons/detail-circle.png" mode="aspectFit"></image>
+          </view>
           <text class="circle-name">{{ article.circle.name }}</text>
         </view>
       </view>
@@ -98,21 +100,31 @@
       </view>
       <view class="action-btns">
         <view class="action-btn" :class="{ active: article.isLiked }" @click="handleLike">
-          <text class="action-icon">{{ article.isLiked ? '赞' : '赞' }}</text>
+          <view class="action-icon">
+            <image class="action-icon-image" :src="article.isLiked ? '/static/icons/feed-like-active.png' : '/static/icons/feed-like.png'" mode="aspectFit"></image>
+          </view>
           <text class="action-num">{{ article.likeCount || '' }}</text>
         </view>
         <view class="action-btn" @click="showComments = true">
-          <text class="action-icon">评</text>
+          <view class="action-icon">
+            <image class="action-icon-image" src="/static/icons/feed-comment.png" mode="aspectFit"></image>
+          </view>
           <text class="action-num">{{ article.commentCount || '' }}</text>
         </view>
         <view class="action-btn" :class="{ active: article.isCollected }" @click="handleCollect">
-          <text class="action-icon">藏</text>
+          <view class="action-icon">
+            <image class="action-icon-image" :src="article.isCollected ? '/static/icons/detail-collect-active.png' : '/static/icons/detail-collect.png'" mode="aspectFit"></image>
+          </view>
         </view>
         <button class="action-btn share-btn" open-type="share">
-          <text class="action-icon">享</text>
+          <view class="action-icon">
+            <image class="action-icon-image" src="/static/icons/detail-share.png" mode="aspectFit"></image>
+          </view>
         </button>
         <view class="action-btn" @click="handlePoster">
-          <text class="action-icon">报</text>
+          <view class="action-icon">
+            <image class="action-icon-image" src="/static/icons/detail-poster.png" mode="aspectFit"></image>
+          </view>
         </view>
       </view>
     </view>
@@ -383,13 +395,15 @@ onLoad((options: any) => {
   width: 34rpx;
   height: 34rpx;
   border-radius: 8rpx;
-  font-size: 20rpx;
-  color: #fff;
-  font-weight: 700;
   background: #e17055;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.circle-icon-image {
+  width: 20rpx;
+  height: 20rpx;
 }
 
 .circle-name {
@@ -454,11 +468,15 @@ onLoad((options: any) => {
 .follow-btn {
   background: linear-gradient(135deg, #E17055 0%, #d45d43 100%);
   color: #fff;
-  padding: 16rpx 32rpx;
+  min-height: 88rpx;
+  padding: 0 32rpx;
   border-radius: 32rpx;
   font-size: calc(13px * var(--font-scale));
   font-weight: 500;
   box-shadow: 0 8rpx 24rpx rgba(225, 112, 85, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &.followed {
     background: #f5f5f5;
@@ -662,7 +680,6 @@ onLoad((options: any) => {
     border-radius: 24rpx;
     .action-icon {
       transform: scale(1.1);
-      color: #d26045;
     }
   }
 }
@@ -672,13 +689,15 @@ onLoad((options: any) => {
   height: 44rpx;
   border-radius: 12rpx;
   background: #f3f3f3;
-  font-size: 24rpx;
-  font-weight: 700;
-  color: #555;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: transform 0.2s ease;
+}
+
+.action-icon-image {
+  width: 22rpx;
+  height: 22rpx;
 }
 
 .action-num {

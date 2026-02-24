@@ -3,11 +3,23 @@
     <!-- 类型选择 -->
     <view class="type-tabs">
       <view class="type-tab" :class="{ active: publishType === 'image' }" @click="publishType = 'image'">
-        <text class="tab-icon">图</text>
+        <view class="tab-icon">
+          <image
+            class="tab-icon-image"
+            :src="publishType === 'image' ? '/static/icons/publisher-tab-image-active.png' : '/static/icons/publisher-tab-image.png'"
+            mode="aspectFit"
+          ></image>
+        </view>
         <text class="tab-text" :style="{ fontSize: `calc(14px * ${fontScale})` }">图文</text>
       </view>
       <view class="type-tab" :class="{ active: publishType === 'video' }" @click="publishType = 'video'">
-        <text class="tab-icon">视</text>
+        <view class="tab-icon">
+          <image
+            class="tab-icon-image"
+            :src="publishType === 'video' ? '/static/icons/publisher-tab-video-active.png' : '/static/icons/publisher-tab-video.png'"
+            mode="aspectFit"
+          ></image>
+        </view>
         <text class="tab-text" :style="{ fontSize: `calc(14px * ${fontScale})` }">视频</text>
       </view>
     </view>
@@ -16,7 +28,9 @@
       <!-- 标题 -->
       <view class="form-card">
         <view class="form-label">
-          <text class="label-icon">标</text>
+          <view class="label-icon">
+            <image class="label-icon-image" src="/static/icons/publisher-label-title.png" mode="aspectFit"></image>
+          </view>
           <text :style="{ fontSize: `calc(14px * ${fontScale})` }">标题</text>
         </view>
         <input v-model="formData.title" placeholder="请输入标题（50字以内）" maxlength="50" class="form-input" :style="{ fontSize: `calc(15px * ${fontScale})` }" />
@@ -25,7 +39,9 @@
       <!-- 内容 -->
       <view class="form-card">
         <view class="form-label">
-          <text class="label-icon">文</text>
+          <view class="label-icon">
+            <image class="label-icon-image" src="/static/icons/publisher-label-content.png" mode="aspectFit"></image>
+          </view>
           <text :style="{ fontSize: `calc(14px * ${fontScale})` }">内容</text>
         </view>
         <textarea v-model="formData.content" placeholder="分享您的健康经验..." maxlength="2000" class="form-textarea" :style="{ fontSize: `calc(15px * ${fontScale})` }"></textarea>
@@ -35,7 +51,9 @@
       <!-- 媒体上传 -->
       <view class="form-card">
         <view class="form-label">
-          <text class="label-icon">{{ publishType === 'image' ? '图' : '视' }}</text>
+          <view class="label-icon">
+            <image class="label-icon-image" src="/static/icons/publisher-label-media.png" mode="aspectFit"></image>
+          </view>
           <text :style="{ fontSize: `calc(14px * ${fontScale})` }">{{ publishType === 'image' ? '图片' : '视频' }}</text>
         </view>
         
@@ -43,10 +61,12 @@
         <view v-if="publishType === 'image'" class="media-grid">
           <view v-for="(url, index) in formData.mediaUrls" :key="index" class="media-item">
             <image class="media-image" :src="url" mode="aspectFill"></image>
-            <view class="media-delete" @click="removeMedia(index)">✕</view>
+            <view class="media-delete" @click="removeMedia(index)">
+              <image class="media-delete-icon" src="/static/icons/common-close-white.png" mode="aspectFit"></image>
+            </view>
           </view>
           <view v-if="formData.mediaUrls.length < 9" class="media-add" @click="chooseImage">
-            <text class="add-icon">+</text>
+            <image class="add-icon-image" src="/static/icons/common-plus-muted.png" mode="aspectFit"></image>
             <text class="add-text" :style="{ fontSize: `calc(12px * ${fontScale})` }">添加图片</text>
           </view>
         </view>
@@ -55,10 +75,12 @@
         <view v-else class="video-upload">
           <view v-if="formData.videoUrl" class="video-preview">
             <video class="video-player" :src="formData.videoUrl"></video>
-            <view class="video-delete" @click="removeVideo">✕</view>
+            <view class="video-delete" @click="removeVideo">
+              <image class="video-delete-icon" src="/static/icons/common-close-white.png" mode="aspectFit"></image>
+            </view>
           </view>
           <view v-else class="video-add" @click="chooseVideo">
-            <text class="add-icon">+</text>
+            <image class="add-icon-image" src="/static/icons/common-plus-muted.png" mode="aspectFit"></image>
             <text class="add-text" :style="{ fontSize: `calc(13px * ${fontScale})` }">添加视频</text>
             <text class="add-tip" :style="{ fontSize: `calc(11px * ${fontScale})` }">限3分钟 · 200MB</text>
           </view>
@@ -69,12 +91,14 @@
       <view class="form-card" @click="showCirclePicker = true">
         <view class="circle-selector">
           <view class="selector-left">
-            <text class="label-icon">圈</text>
+            <view class="label-icon">
+              <image class="label-icon-image" src="/static/icons/publisher-label-circle.png" mode="aspectFit"></image>
+            </view>
             <text class="selector-label" :style="{ fontSize: `calc(14px * ${fontScale})` }">选择圈子</text>
           </view>
           <view class="selector-right">
             <text class="selector-value" :style="{ fontSize: `calc(14px * ${fontScale})` }">{{ selectedCircle?.name || '请选择' }}</text>
-            <text class="selector-arrow">›</text>
+            <image class="selector-arrow-image" src="/static/icons/common-arrow-right-muted.png" mode="aspectFit"></image>
           </view>
         </view>
       </view>
@@ -92,7 +116,9 @@
       <view class="picker-sheet" @click.stop>
         <view class="picker-header">
           <text class="picker-title" :style="{ fontSize: `calc(16px * ${fontScale})` }">选择圈子</text>
-          <text class="picker-close" @click="showCirclePicker = false">✕</text>
+          <view class="picker-close" @click="showCirclePicker = false">
+            <image class="picker-close-image" src="/static/icons/common-close-muted.png" mode="aspectFit"></image>
+          </view>
         </view>
         <scroll-view scroll-y class="picker-list">
           <view v-if="circles.length === 0" class="picker-empty">
@@ -107,7 +133,12 @@
             @click="selectCircle(item)"
           >
             <text :style="{ fontSize: `calc(15px * ${fontScale})` }">{{ item.name }}</text>
-            <text v-if="selectedCircle?.id === item.id" class="check-icon">✓</text>
+            <image
+              v-if="selectedCircle?.id === item.id"
+              class="check-icon-image"
+              src="/static/icons/common-check-accent.png"
+              mode="aspectFit"
+            ></image>
           </view>
         </scroll-view>
       </view>
@@ -260,6 +291,20 @@ onLoad((options: any) => {
   if (options.circleId) {
     formData.value.circleId = +options.circleId;
   }
+
+  if (options.mode === 'republish') {
+    const draft = uni.getStorageSync('republishDraft');
+    if (draft) {
+      publishType.value = Number(draft.type) === 2 ? 'video' : 'image';
+      formData.value.title = draft.title || '';
+      formData.value.content = draft.content || '';
+      formData.value.circleId = Number(draft.circleId || formData.value.circleId || 0);
+      formData.value.mediaUrls = [];
+      formData.value.videoUrl = '';
+      uni.removeStorageSync('republishDraft');
+      uni.showToast({ title: '已带入标题正文，请重新上传素材', icon: 'none' });
+    }
+  }
 });
 
 onMounted(() => loadCircles());
@@ -306,17 +351,18 @@ onMounted(() => loadCircles());
   height: 40rpx;
   border-radius: 10rpx;
   background: #eef2f5;
-  color: #4b5563;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22rpx;
-  font-weight: 700;
+}
+
+.tab-icon-image {
+  width: 24rpx;
+  height: 24rpx;
 }
 
 .type-tab.active .tab-icon {
   background: #ffe9e2;
-  color: #d25f45;
 }
 
 // 表单滚动区
@@ -347,12 +393,14 @@ onMounted(() => loadCircles());
   height: 34rpx;
   border-radius: 10rpx;
   background: #eef2f5;
-  color: #4b5563;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18rpx;
-  font-weight: 700;
+}
+
+.label-icon-image {
+  width: 20rpx;
+  height: 20rpx;
 }
 
 .form-input {
@@ -400,17 +448,31 @@ onMounted(() => loadCircles());
 
 .media-delete, .video-delete {
   position: absolute;
-  top: 8rpx;
-  right: 8rpx;
-  width: 44rpx;
-  height: 44rpx;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 22rpx;
-  color: #fff;
+  top: -14rpx;
+  right: -14rpx;
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 44rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24rpx;
+
+  &::before {
+    content: '';
+    width: 44rpx;
+    height: 44rpx;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 22rpx;
+    position: absolute;
+  }
+}
+
+.media-delete-icon,
+.video-delete-icon {
+  width: 22rpx;
+  height: 22rpx;
+  position: relative;
+  z-index: 1;
 }
 
 .media-add, .video-add {
@@ -426,9 +488,9 @@ onMounted(() => loadCircles());
   color: #ccc;
 }
 
-.add-icon {
-  font-size: 56rpx;
-  color: #ddd;
+.add-icon-image {
+  width: 42rpx;
+  height: 42rpx;
 }
 
 .add-text {
@@ -483,9 +545,9 @@ onMounted(() => loadCircles());
   color: #999;
 }
 
-.selector-arrow {
-  font-size: 32rpx;
-  color: #ccc;
+.selector-arrow-image {
+  width: 24rpx;
+  height: 24rpx;
 }
 
 // 底部调
@@ -547,8 +609,18 @@ onMounted(() => loadCircles());
 }
 
 .picker-close {
-  font-size: 36rpx;
-  color: #999;
+  width: 88rpx;
+  height: 88rpx;
+  margin: -18rpx -18rpx -18rpx 0;
+  border-radius: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.picker-close-image {
+  width: 28rpx;
+  height: 28rpx;
 }
 
 .picker-list {
@@ -591,9 +663,8 @@ onMounted(() => loadCircles());
   margin-top: 8rpx;
 }
 
-.check-icon {
-  color: #E17055;
-  font-size: 36rpx;
-  font-weight: bold;
+.check-icon-image {
+  width: 28rpx;
+  height: 28rpx;
 }
 </style>

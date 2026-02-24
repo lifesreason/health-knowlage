@@ -4,8 +4,12 @@
       <!-- 顶部装饰 -->
       <view class="modal-header">
         <view class="header-bg"></view>
-        <text class="header-icon">登</text>
-        <text class="close-btn" @click="$emit('close')">✕</text>
+        <view class="header-icon">
+          <image class="header-icon-image" src="/static/icons/section-user.png" mode="aspectFit"></image>
+        </view>
+        <view class="close-btn" @click="$emit('close')">
+          <image class="close-btn-image" src="/static/icons/common-close-white.png" mode="aspectFit"></image>
+        </view>
       </view>
       
       <!-- 内容区 -->
@@ -16,15 +20,21 @@
         <!-- 功能列表 -->
         <view class="features">
           <view class="feature-item">
-            <text class="feature-icon">发</text>
+            <view class="feature-icon">
+              <image class="feature-icon-image" src="/static/icons/quick-post.png" mode="aspectFit"></image>
+            </view>
             <text class="feature-text">发布健康话题</text>
           </view>
           <view class="feature-item">
-            <text class="feature-icon">赞</text>
+            <view class="feature-icon">
+              <image class="feature-icon-image" src="/static/icons/feed-like-active.png" mode="aspectFit"></image>
+            </view>
             <text class="feature-text">点赞收藏内容</text>
           </view>
           <view class="feature-item">
-            <text class="feature-icon">圈</text>
+            <view class="feature-icon">
+              <image class="feature-icon-image" src="/static/icons/quick-circle.png" mode="aspectFit"></image>
+            </view>
             <text class="feature-text">加入健康圈子</text>
           </view>
         </view>
@@ -111,28 +121,43 @@ const goToLogin = () => {
   height: 90rpx;
   border-radius: 24rpx;
   background: rgba(255, 255, 255, 0.2);
-  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 46rpx;
-  font-weight: 700;
   z-index: 1;
+}
+
+.header-icon-image {
+  width: 46rpx;
+  height: 46rpx;
 }
 
 .close-btn {
   position: absolute;
   top: 24rpx;
   right: 24rpx;
-  width: 48rpx;
-  height: 48rpx;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 44rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28rpx;
-  color: #fff;
+  z-index: 1;
+
+  &::before {
+    content: '';
+    width: 48rpx;
+    height: 48rpx;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    position: absolute;
+  }
+}
+
+.close-btn-image {
+  width: 24rpx;
+  height: 24rpx;
+  position: relative;
   z-index: 1;
 }
 
@@ -178,12 +203,14 @@ const goToLogin = () => {
   height: 42rpx;
   border-radius: 12rpx;
   background: #eef2f5;
-  color: #4b5563;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22rpx;
-  font-weight: 700;
+}
+
+.feature-icon-image {
+  width: 24rpx;
+  height: 24rpx;
 }
 
 .feature-text {

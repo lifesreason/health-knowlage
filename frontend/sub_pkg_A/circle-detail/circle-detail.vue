@@ -23,16 +23,22 @@
         class="join-btn" 
         :class="{ joined: circle.isJoined }" 
         @click="toggleJoin"
-        :style="{ fontSize: `calc(14px * ${fontScale})` }"
       >
-        {{ circle.isJoined ? '✓ 已加入' : '+ 加入圈子' }}
+        <image
+          class="join-btn-icon"
+          :src="circle.isJoined ? '/static/icons/common-check-white.png' : '/static/icons/common-plus-white.png'"
+          mode="aspectFit"
+        ></image>
+        <text :style="{ fontSize: `calc(14px * ${fontScale})` }">{{ circle.isJoined ? '已加入' : '加入圈子' }}</text>
       </button>
     </view>
 
     <!-- 帖子列表 -->
     <scroll-view scroll-y class="post-list" @scrolltolower="loadMore">
       <view v-if="posts.length === 0 && !loading" class="empty-state">
-        <text class="empty-icon">评</text>
+        <view class="empty-icon">
+          <image class="empty-icon-image" src="/static/icons/feed-comment.png" mode="aspectFit"></image>
+        </view>
         <text class="empty-text" :style="{ fontSize: `calc(14px * ${fontScale})` }">暂无帖子，快来发布第一篇吧</text>
       </view>
 
@@ -64,11 +70,15 @@
         
         <view class="post-actions">
           <view class="action-item" @click.stop="handleLike(item)">
-            <text class="action-icon" :class="{ active: item.isLiked }">赞</text>
+            <view class="action-icon" :class="{ active: item.isLiked }">
+              <image class="action-icon-image" :src="item.isLiked ? '/static/icons/feed-like-active.png' : '/static/icons/feed-like.png'" mode="aspectFit"></image>
+            </view>
             <text class="action-count" :style="{ fontSize: `calc(13px * ${fontScale})` }">{{ item.likeCount || 0 }}</text>
           </view>
           <view class="action-item">
-            <text class="action-icon">评</text>
+            <view class="action-icon">
+              <image class="action-icon-image" src="/static/icons/feed-comment.png" mode="aspectFit"></image>
+            </view>
             <text class="action-count" :style="{ fontSize: `calc(13px * ${fontScale})` }">{{ item.commentCount || 0 }}</text>
           </view>
         </view>
@@ -88,7 +98,7 @@
 
     <!-- 发布按钮 -->
     <view v-if="circle.isJoined" class="publish-fab" @click="goToPublish">
-      <text class="fab-icon">发</text>
+      <image class="fab-icon-image" src="/static/icons/home-publish.png" mode="aspectFit"></image>
     </view>
   </view>
 </template>
@@ -218,7 +228,7 @@ const handleLike = async (item: any) => {
   if (!userStore.requireLogin()) return;
   const prev = !!item.isLiked;
   item.isLiked = !prev;
-  item.likeCount = Number(item.likeCount || 0) + (item.isLiked ? 1 : -1);
+  item.likeCount = Math.max(0, Number(item.likeCount || 0) + (item.isLiked ? 1 : -1));
   try {
     if (item.isLiked) {
       await interactionApi.like({ targetId: item.id, targetType: 'post' });
@@ -227,7 +237,7 @@ const handleLike = async (item: any) => {
     }
   } catch {
     item.isLiked = prev;
-    item.likeCount = Number(item.likeCount || 0) + (item.isLiked ? 1 : -1);
+    item.likeCount = Math.max(0, Number(item.likeCount || 0) + (item.isLiked ? 1 : -1));
   }
 };
 
@@ -347,19 +357,28 @@ onPullDownRefresh(() => {
   position: absolute;
   right: 24rpx;
   bottom: 32rpx;
-  padding: 16rpx 32rpx;
+  min-height: 88rpx;
+  padding: 0 32rpx;
   background: linear-gradient(135deg, #E17055, #d45d43);
   color: #fff;
   border: none;
   border-radius: 32rpx;
   font-weight: 500;
   box-shadow: 0 8rpx 20rpx rgba(225, 112, 85, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
   
   &.joined {
     background: rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(10px);
     box-shadow: none;
   }
+}
+
+.join-btn-icon {
+  width: 20rpx;
+  height: 20rpx;
 }
 
 // 帖子列表
@@ -487,17 +506,18 @@ onPullDownRefresh(() => {
   height: 34rpx;
   border-radius: 10rpx;
   background: #f4f6f8;
-  color: #6b7280;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20rpx;
-  font-weight: 700;
 }
 
 .action-icon.active {
   background: #ffe9e2;
-  color: #d25f45;
+}
+
+.action-icon-image {
+  width: 18rpx;
+  height: 18rpx;
 }
 
 .action-count {
@@ -553,8 +573,16 @@ onPullDownRefresh(() => {
 }
 
 .fab-icon {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #fff;
+  display: none;
+}
+
+.fab-icon-image {
+  width: 44rpx;
+  height: 44rpx;
+}
+
+.empty-icon-image {
+  width: 36rpx;
+  height: 36rpx;
 }
 </style>

@@ -13,7 +13,9 @@
     <!-- 空状态 -->
     <view v-else-if="videoList.length === 0" class="state-container" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="empty-wrap">
-        <text class="empty-icon">视</text>
+        <view class="empty-icon">
+          <image class="empty-icon-image" src="/static/icons/publisher-tab-video-active.png" mode="aspectFit"></image>
+        </view>
         <text class="empty-title" :style="{ fontSize: `calc(18px * ${fontScale})` }">暂无视频内容</text>
         <text class="empty-desc" :style="{ fontSize: `calc(14px * ${fontScale})` }">暂未检索到视频，可刷新后重试</text>
         <view class="empty-actions">
@@ -56,13 +58,15 @@
             <!-- 暂停图标 -->
             <view v-if="pausedVideos[index]" class="pause-overlay">
               <view class="pause-btn">
-                <text class="pause-icon">▶</text>
+                <image class="pause-icon-image" src="/static/icons/common-play-white.png" mode="aspectFit"></image>
               </view>
             </view>
 
             <!-- 双击点赞动画 -->
             <view v-if="showLikeAnimation" class="like-animation">
-              <text class="heart-icon">赞</text>
+              <view class="heart-icon">
+                <image class="heart-icon-image" src="/static/icons/feed-like-active.png" mode="aspectFit"></image>
+              </view>
             </view>
 
             <!-- 视频信息 -->
@@ -77,7 +81,8 @@
                   {{ item.author?.nickname || item.user?.nickname || '系统' }}
                 </text>
                 <view class="follow-tag" v-if="!item.isFollowed" @click.stop="handleFollow(item)">
-                  <text>+ 关注</text>
+                  <image class="follow-tag-icon" src="/static/icons/common-plus-white.png" mode="aspectFit"></image>
+                  <text>关注</text>
                 </view>
               </view>
               <text class="video-title" :style="{ fontSize: `calc(16px * ${fontScale})` }">{{ item.title }}</text>
@@ -97,38 +102,38 @@
                 mode="aspectFill"
               ></image>
               <view class="follow-btn" v-if="!item.isFollowed" @click.stop="handleFollow(item)">
-                <text class="plus-icon">+</text>
+                <image class="plus-icon-image" src="/static/icons/common-plus-white.png" mode="aspectFit"></image>
               </view>
             </view>
             <view class="sidebar-item" @click="handleLike(item)">
               <view class="icon-wrapper" :class="{ active: item.isLiked }">
-                <text class="sidebar-icon">赞</text>
+                <image class="sidebar-icon-image" :src="item.isLiked ? '/static/icons/feed-like-active.png' : '/static/icons/feed-like.png'" mode="aspectFit"></image>
               </view>
               <text class="sidebar-count" :style="{ fontSize: `calc(12px * ${fontScale})` }">{{ formatNumber(item.likeCount) }}</text>
             </view>
             <view class="sidebar-item" @click="openComments(item)">
               <view class="icon-wrapper">
-                <text class="sidebar-icon">评</text>
+                <image class="sidebar-icon-image" src="/static/icons/feed-comment.png" mode="aspectFit"></image>
               </view>
               <text class="sidebar-count" :style="{ fontSize: `calc(12px * ${fontScale})` }">{{ formatNumber(item.commentCount) }}</text>
             </view>
             <view class="sidebar-item" @click="handleCollect(item)">
               <view class="icon-wrapper" :class="{ active: item.isCollected }">
-                <text class="sidebar-icon">藏</text>
+                <image class="sidebar-icon-image" :src="item.isCollected ? '/static/icons/detail-collect-active.png' : '/static/icons/detail-collect.png'" mode="aspectFit"></image>
               </view>
               <text class="sidebar-count" :style="{ fontSize: `calc(12px * ${fontScale})` }">{{ formatNumber(item.collectCount || 0) }}</text>
             </view>
             <view class="sidebar-item">
               <button class="share-btn" open-type="share">
                 <view class="icon-wrapper">
-                  <text class="sidebar-icon">享</text>
+                  <image class="sidebar-icon-image" src="/static/icons/detail-share.png" mode="aspectFit"></image>
                 </view>
               </button>
               <text class="sidebar-count" :style="{ fontSize: `calc(12px * ${fontScale})` }">分享</text>
             </view>
             <view class="sidebar-item" @click="handlePoster(item)">
               <view class="icon-wrapper">
-                <text class="sidebar-icon">报</text>
+                <image class="sidebar-icon-image" src="/static/icons/detail-poster.png" mode="aspectFit"></image>
               </view>
               <text class="sidebar-count" :style="{ fontSize: `calc(12px * ${fontScale})` }">海报</text>
             </view>
@@ -549,13 +554,15 @@ onHide(() => {
   height: 120rpx;
   border-radius: 30rpx;
   background: rgba(255, 255, 255, 0.14);
-  color: #fff;
-  font-size: 56rpx;
-  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 32rpx;
+}
+
+.empty-icon-image {
+  width: 58rpx;
+  height: 58rpx;
 }
 .empty-title { color: #fff; font-weight: 700; margin-bottom: 16rpx; }
 .empty-desc { color: rgba(255, 255, 255, 0.5); text-align: center; margin-bottom: 56rpx; }
@@ -615,7 +622,7 @@ onHide(() => {
   justify-content: center;
 }
 
-.pause-icon { font-size: 56rpx; color: #fff; margin-left: 8rpx; }
+.pause-icon-image { width: 56rpx; height: 56rpx; margin-left: 8rpx; }
 
 .like-animation {
   position: absolute;
@@ -630,13 +637,15 @@ onHide(() => {
   height: 240rpx;
   border-radius: 60rpx;
   background: rgba(225, 112, 85, 0.18);
-  color: #fff;
   border: 2rpx solid rgba(255, 255, 255, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 120rpx;
-  font-weight: 700;
+}
+
+.heart-icon-image {
+  width: 132rpx;
+  height: 132rpx;
 }
 
 @keyframes likeScale {
@@ -665,8 +674,17 @@ onHide(() => {
 }
 
 .follow-tag {
-  background: #E17055; padding: 6rpx 16rpx;
+  background: #E17055; padding: 0 18rpx;
+  min-height: 88rpx;
   border-radius: 20rpx; font-size: 22rpx; color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.follow-tag-icon {
+  width: 18rpx;
+  height: 18rpx;
 }
 
 .video-title {
@@ -703,13 +721,22 @@ onHide(() => {
 
 .follow-btn {
   position: relative; top: -20rpx;
-  width: 40rpx; height: 40rpx;
-  background: #E17055; border-radius: 50%;
+  width: 88rpx; height: 88rpx;
+  border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  border: 3rpx solid #fff;
+  
+  &::before {
+    content: '';
+    width: 40rpx;
+    height: 40rpx;
+    background: #E17055;
+    border-radius: 50%;
+    border: 3rpx solid #fff;
+    position: absolute;
+  }
 }
 
-.plus-icon { color: #fff; font-size: 28rpx; font-weight: 700; }
+.plus-icon-image { width: 22rpx; height: 22rpx; position: relative; z-index: 1; }
 
 .icon-wrapper {
   width: 80rpx; height: 80rpx;
@@ -722,9 +749,12 @@ onHide(() => {
 }
 
 .sidebar-icon {
-  font-size: 30rpx;
-  color: #fff;
-  font-weight: 700;
+  display: none;
+}
+
+.sidebar-icon-image {
+  width: 34rpx;
+  height: 34rpx;
 }
 .sidebar-count { color: #fff; text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.5); }
 

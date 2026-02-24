@@ -45,6 +45,7 @@ export function getCommentList(params: {
   pageSize: number;
   keyword?: string;
   postId?: number;
+  status?: number;
 }) {
   return request({
     url: '/comment/admin/list',
@@ -58,6 +59,31 @@ export function deleteComment(id: number) {
   return request({
     url: `/comment/admin/${id}`,
     method: 'delete',
+  });
+}
+
+// 审核通过评论
+export function approveComment(id: number) {
+  return request({
+    url: `/comment/admin/${id}/approve`,
+    method: 'post',
+  });
+}
+
+// 审核驳回评论
+export function rejectComment(id: number) {
+  return request({
+    url: `/comment/admin/${id}/reject`,
+    method: 'post',
+  });
+}
+
+// 批量审核评论
+export function batchAuditComments(data: { commentIds: number[]; action: 'approve' | 'reject' }) {
+  return request({
+    url: '/comment/admin/batch-audit',
+    method: 'post',
+    data,
   });
 }
 

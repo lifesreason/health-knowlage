@@ -44,22 +44,28 @@
     <!-- 卡片底部 - 互动数据 -->
     <view class="card-footer">
       <view class="action-item" @click.stop="$emit('like', item)">
-        <text class="action-icon" :class="{ active: item.isLiked }">赞</text>
+        <view class="action-icon" :class="{ active: item.isLiked }">
+          <image class="action-icon-image" :src="item.isLiked ? ICONS.likeActive : ICONS.like" mode="aspectFit"></image>
+        </view>
         <text class="action-text" :style="{ fontSize: `calc(12px * ${fontScale})` }">{{ formatNumber(item.likeCount || 0) }}</text>
       </view>
       <view class="action-item">
-        <text class="action-icon">评</text>
+        <view class="action-icon">
+          <image class="action-icon-image" :src="ICONS.comment" mode="aspectFit"></image>
+        </view>
         <text class="action-text" :style="{ fontSize: `calc(12px * ${fontScale})` }">{{ formatNumber(item.commentCount || 0) }}</text>
       </view>
       <view class="action-item">
-        <text class="action-icon">阅</text>
+        <view class="action-icon">
+          <image class="action-icon-image" :src="ICONS.view" mode="aspectFit"></image>
+        </view>
         <text class="action-text" :style="{ fontSize: `calc(12px * ${fontScale})` }">{{ formatNumber(item.viewCount || 0) }}</text>
       </view>
     </view>
 
     <!-- 视频标记 -->
     <view v-if="item.type === 2" class="video-badge">
-      <text class="video-icon">▶</text>
+      <image class="video-icon-image" src="/static/icons/common-play-white.png" mode="aspectFit"></image>
       <text class="video-duration" v-if="item.duration">{{ formatDuration(item.duration) }}</text>
     </view>
   </view>
@@ -74,6 +80,13 @@ const props = defineProps<{
 }>();
 
 defineEmits(['click', 'like']);
+
+const ICONS = {
+  like: '/static/icons/feed-like.png',
+  likeActive: '/static/icons/feed-like-active.png',
+  comment: '/static/icons/feed-comment.png',
+  view: '/static/icons/feed-view.png',
+};
 
 // 移除HTML标签
 const stripHtml = (html: string) => {
@@ -268,8 +281,6 @@ const formatDuration = (seconds: number) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20rpx;
-  font-weight: 700;
   transition: transform 0.2s ease;
 
   &.active {
@@ -277,6 +288,11 @@ const formatDuration = (seconds: number) => {
     color: #d25f45;
     animation: pulse 0.3s ease;
   }
+}
+
+.action-icon-image {
+  width: 20rpx;
+  height: 20rpx;
 }
 
 @keyframes pulse {
@@ -301,9 +317,9 @@ const formatDuration = (seconds: number) => {
   border-radius: 20rpx;
 }
 
-.video-icon {
-  color: #fff;
-  font-size: 20rpx;
+.video-icon-image {
+  width: 20rpx;
+  height: 20rpx;
 }
 
 .video-duration {

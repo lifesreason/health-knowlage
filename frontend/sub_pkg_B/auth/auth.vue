@@ -26,21 +26,27 @@
         <!-- 功能亮点 -->
         <view class="features">
           <view class="feature-item">
-            <text class="feature-icon">知</text>
+            <view class="feature-icon">
+              <image class="feature-icon-image" src="/static/icons/auth-knowledge.png" mode="aspectFit"></image>
+            </view>
             <text class="feature-text" :style="{ fontSize: `calc(13px * ${fontScale})` }">专业健康知识</text>
           </view>
           <view class="feature-item">
-            <text class="feature-icon">医</text>
+            <view class="feature-icon">
+              <image class="feature-icon-image" src="/static/icons/auth-doctor.png" mode="aspectFit"></image>
+            </view>
             <text class="feature-text" :style="{ fontSize: `calc(13px * ${fontScale})` }">医师在线答疑</text>
           </view>
           <view class="feature-item">
-            <text class="feature-icon">圈</text>
+            <view class="feature-icon">
+              <image class="feature-icon-image" src="/static/icons/quick-circle.png" mode="aspectFit"></image>
+            </view>
             <text class="feature-text" :style="{ fontSize: `calc(13px * ${fontScale})` }">健康圈子交流</text>
           </view>
         </view>
         
         <button class="wx-login-btn" @click="handleWxLogin">
-          <text class="wx-icon">微</text>
+          <image class="wx-icon-image" src="/static/icons/auth-wechat.png" mode="aspectFit"></image>
           <text :style="{ fontSize: `calc(17px * ${fontScale})` }">微信一键登录</text>
         </button>
         
@@ -55,7 +61,7 @@
         <text class="section-desc" :style="{ fontSize: `calc(14px * ${fontScale})` }">绑定后可获得更多专属功能</text>
         
         <button class="phone-auth-btn" open-type="getPhoneNumber" @getphonenumber="handleGetPhone">
-          <text class="phone-icon">机</text>
+          <image class="phone-icon-image" src="/static/icons/auth-phone.png" mode="aspectFit"></image>
           <text :style="{ fontSize: `calc(16px * ${fontScale})` }">一键授权手机号</text>
         </button>
 
@@ -67,11 +73,15 @@
 
         <view class="input-group">
           <view class="input-wrap">
-            <text class="input-icon">号</text>
+            <view class="input-icon">
+              <image class="input-icon-image" src="/static/icons/auth-phone.png" mode="aspectFit"></image>
+            </view>
             <input v-model="phone" type="number" placeholder="请输入手机号" maxlength="11" class="form-input" :style="{ fontSize: `calc(15px * ${fontScale})` }" />
           </view>
           <view class="input-wrap code-wrap">
-            <text class="input-icon">码</text>
+            <view class="input-icon">
+              <image class="input-icon-image" src="/static/icons/auth-code.png" mode="aspectFit"></image>
+            </view>
             <input v-model="code" type="number" placeholder="验证码" maxlength="6" class="form-input" :style="{ fontSize: `calc(15px * ${fontScale})` }" />
             <button class="code-btn" :disabled="countdown > 0" @click="sendCode" :style="{ fontSize: `calc(13px * ${fontScale})` }">
               {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
@@ -82,7 +92,10 @@
           </button>
         </view>
 
-        <text class="skip-btn" @click="skipBind" :style="{ fontSize: `calc(14px * ${fontScale})` }">暂不绑定，先看看 →</text>
+        <view class="skip-btn" @click="skipBind">
+          <text :style="{ fontSize: `calc(14px * ${fontScale})` }">暂不绑定，先看看</text>
+          <image class="skip-arrow-image" src="/static/icons/common-arrow-right-accent.png" mode="aspectFit"></image>
+        </view>
       </view>
     </view>
   </view>
@@ -350,12 +363,14 @@ onUnmounted(() => {
   height: 46rpx;
   border-radius: 12rpx;
   background: #eef2f5;
-  color: #4b5563;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24rpx;
-  font-weight: 700;
+}
+
+.feature-icon-image {
+  width: 26rpx;
+  height: 26rpx;
 }
 
 .feature-text {
@@ -378,16 +393,9 @@ onUnmounted(() => {
   margin-bottom: 32rpx;
 }
 
-.wx-icon {
+.wx-icon-image {
   width: 40rpx;
   height: 40rpx;
-  border-radius: 10rpx;
-  background: rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24rpx;
-  font-weight: 700;
 }
 
 .login-tips {
@@ -417,16 +425,9 @@ onUnmounted(() => {
   margin-bottom: 40rpx;
 }
 
-.phone-icon {
+.phone-icon-image {
   width: 38rpx;
   height: 38rpx;
-  border-radius: 10rpx;
-  background: rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22rpx;
-  font-weight: 700;
 }
 
 // 分隔线
@@ -469,12 +470,14 @@ onUnmounted(() => {
   height: 34rpx;
   border-radius: 10rpx;
   background: #eef2f5;
-  color: #4b5563;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18rpx;
-  font-weight: 700;
+}
+
+.input-icon-image {
+  width: 18rpx;
+  height: 18rpx;
 }
 
 .form-input {
@@ -526,5 +529,14 @@ onUnmounted(() => {
 .skip-btn {
   margin-top: 40rpx;
   color: #E17055;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+}
+
+.skip-arrow-image {
+  width: 20rpx;
+  height: 20rpx;
 }
 </style>

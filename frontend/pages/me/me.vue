@@ -14,7 +14,7 @@
             mode="aspectFill"
           ></image>
           <view v-if="userStore.isDoctor" class="verified-badge">
-            <text>✓</text>
+            <image class="verified-badge-image" src="/static/icons/common-check-white.png" mode="aspectFit"></image>
           </view>
         </view>
         
@@ -64,25 +64,25 @@
       <view class="quick-grid">
         <view class="quick-item" @click="goToMyPosts">
           <view class="quick-icon-wrapper" style="background: linear-gradient(135deg, #74b9ff, #0984e3)">
-            <text class="quick-icon">文</text>
+            <image class="quick-icon-image" src="/static/icons/quick-post.png" mode="aspectFit"></image>
           </view>
           <text class="quick-text" :style="{ fontSize: `calc(13px * ${fontScale})` }">我的发布</text>
         </view>
         <view class="quick-item" @click="goToCollections">
           <view class="quick-icon-wrapper" style="background: linear-gradient(135deg, #ffeaa7, #fdcb6e)">
-            <text class="quick-icon">藏</text>
+            <image class="quick-icon-image" src="/static/icons/quick-collect.png" mode="aspectFit"></image>
           </view>
           <text class="quick-text" :style="{ fontSize: `calc(13px * ${fontScale})` }">我的收藏</text>
         </view>
         <view class="quick-item" @click="goToHistory">
           <view class="quick-icon-wrapper" style="background: linear-gradient(135deg, #a29bfe, #6c5ce7)">
-            <text class="quick-icon">迹</text>
+            <image class="quick-icon-image" src="/static/icons/quick-history.png" mode="aspectFit"></image>
           </view>
           <text class="quick-text" :style="{ fontSize: `calc(13px * ${fontScale})` }">浏览历史</text>
         </view>
         <view class="quick-item" @click="goToCircles">
           <view class="quick-icon-wrapper" style="background: linear-gradient(135deg, #55efc4, #00b894)">
-            <text class="quick-icon">圈</text>
+            <image class="quick-icon-image" src="/static/icons/quick-circle.png" mode="aspectFit"></image>
           </view>
           <text class="quick-text" :style="{ fontSize: `calc(13px * ${fontScale})` }">我的圈子</text>
         </view>
@@ -94,33 +94,39 @@
       <view class="settings-group">
         <view class="settings-item" @click="goToFontSettings">
           <view class="item-left">
-            <text class="item-icon">A</text>
+            <view class="item-icon-wrap">
+              <image class="item-icon-image" src="/static/icons/setting-font.png" mode="aspectFit"></image>
+            </view>
             <text class="item-text" :style="{ fontSize: `calc(15px * ${fontScale})` }">字体大小</text>
           </view>
           <view class="item-right">
             <text class="item-value" :style="{ fontSize: `calc(14px * ${fontScale})` }">{{ currentScaleLabel }}</text>
-            <text class="item-arrow">›</text>
+            <image class="item-arrow-image" src="/static/icons/common-arrow-right-muted.png" mode="aspectFit"></image>
           </view>
         </view>
         
         <button class="settings-item settings-contact-btn" open-type="contact" @click="contactService">
           <view class="item-left">
-            <text class="item-icon">客</text>
+            <view class="item-icon-wrap">
+              <image class="item-icon-image" src="/static/icons/setting-service.png" mode="aspectFit"></image>
+            </view>
             <text class="item-text" :style="{ fontSize: `calc(15px * ${fontScale})` }">联系客服</text>
           </view>
           <view class="item-right">
-            <text class="item-arrow">›</text>
+            <image class="item-arrow-image" src="/static/icons/common-arrow-right-muted.png" mode="aspectFit"></image>
           </view>
         </button>
         
         <view class="settings-item" @click="goToAbout">
           <view class="item-left">
-            <text class="item-icon">i</text>
+            <view class="item-icon-wrap">
+              <image class="item-icon-image" src="/static/icons/setting-about.png" mode="aspectFit"></image>
+            </view>
             <text class="item-text" :style="{ fontSize: `calc(15px * ${fontScale})` }">关于我们</text>
           </view>
           <view class="item-right">
             <text class="item-value" :style="{ fontSize: `calc(13px * ${fontScale})` }">v1.0.0</text>
-            <text class="item-arrow">›</text>
+            <image class="item-arrow-image" src="/static/icons/common-arrow-right-muted.png" mode="aspectFit"></image>
           </view>
         </view>
       </view>
@@ -330,8 +336,11 @@ onShow(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20rpx;
-  color: #fff;
+}
+
+.verified-badge-image {
+  width: 18rpx;
+  height: 18rpx;
 }
 
 .user-info {
@@ -446,10 +455,9 @@ onShow(() => {
   justify-content: center;
 }
 
-.quick-icon {
-  font-size: 28rpx;
-  color: #fff;
-  font-weight: 700;
+.quick-icon-image {
+  width: 42rpx;
+  height: 42rpx;
 }
 
 .quick-text {
@@ -486,17 +494,19 @@ onShow(() => {
   gap: 20rpx;
 }
 
-.item-icon {
+.item-icon-wrap {
   width: 44rpx;
   height: 44rpx;
   border-radius: 12rpx;
   background: #f6efe9;
-  color: #c5664d;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24rpx;
-  font-weight: 700;
+}
+
+.item-icon-image {
+  width: 26rpx;
+  height: 26rpx;
 }
 
 .item-text {
@@ -513,9 +523,9 @@ onShow(() => {
   color: #999;
 }
 
-.item-arrow {
-  font-size: 32rpx;
-  color: #ccc;
+.item-arrow-image {
+  width: 24rpx;
+  height: 24rpx;
 }
 
 .settings-contact-btn {

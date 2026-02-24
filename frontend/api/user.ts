@@ -20,7 +20,7 @@ export const userApi = {
   },
 
   /** 获取用户发布列表 */
-  getMyPosts(params: { status?: 'published' | 'audit'; page: number; pageSize: number }) {
+  getMyPosts(params: { status?: 'published' | 'audit' | 'rejected'; page: number; pageSize: number }) {
     return http.get('/post/my-posts', { params });
   },
 

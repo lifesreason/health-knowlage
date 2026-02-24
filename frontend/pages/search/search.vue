@@ -3,7 +3,9 @@
     <!-- 搜索头部 -->
     <view class="search-header">
       <view class="search-bar">
-        <text class="search-icon">搜</text>
+        <view class="search-icon">
+          <image class="search-icon-image" src="/static/icons/home-search-field.png" mode="aspectFit"></image>
+        </view>
         <input 
           v-model="keyword" 
           type="text" 
@@ -14,7 +16,9 @@
           class="search-input"
           :style="{ fontSize: `calc(14px * ${fontScale})` }"
         />
-        <text v-if="keyword" class="clear-icon" @click="keyword = ''">✕</text>
+        <view v-if="keyword" class="clear-icon" @click="keyword = ''">
+          <image class="clear-icon-image" src="/static/icons/common-close-muted.png" mode="aspectFit"></image>
+        </view>
       </view>
       <text class="cancel-btn" @click="goBack" :style="{ fontSize: `calc(14px * ${fontScale})` }">取消</text>
     </view>
@@ -72,7 +76,9 @@
 
       <!-- 空结果 -->
       <view v-else-if="searched && results.length === 0" class="empty-state">
-        <text class="empty-icon">空</text>
+        <view class="empty-icon">
+          <image class="empty-icon-image" src="/static/icons/detail-poster.png" mode="aspectFit"></image>
+        </view>
         <text class="empty-title">未找到相关结果</text>
         <text class="empty-desc">换个关键词试试吧</text>
       </view>
@@ -266,12 +272,14 @@ onLoad((options: any) => {
   height: 38rpx;
   border-radius: 10rpx;
   background: #eceff2;
-  color: #4b5563;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22rpx;
-  font-weight: 700;
+}
+
+.search-icon-image {
+  width: 22rpx;
+  height: 22rpx;
 }
 
 .search-input {
@@ -280,9 +288,18 @@ onLoad((options: any) => {
 }
 
 .clear-icon {
-  font-size: 28rpx;
-  color: #999;
-  padding: 8rpx;
+  width: 88rpx;
+  height: 88rpx;
+  margin-right: -14rpx;
+  border-radius: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clear-icon-image {
+  width: 24rpx;
+  height: 24rpx;
 }
 
 .cancel-btn {
@@ -423,12 +440,14 @@ onLoad((options: any) => {
   height: 88rpx;
   border-radius: 22rpx;
   background: #eef2f7;
-  color: #73839b;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 36rpx;
-  font-weight: 700;
+}
+
+.empty-icon-image {
+  width: 42rpx;
+  height: 42rpx;
 }
 
 .empty-title {

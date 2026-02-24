@@ -125,10 +125,10 @@ export class PostController {
   @ApiBearerAuth()
   @ApiOperation({ summary: '获取我的发布列表' })
   @ApiResponse({ status: 200, description: '获取成功' })
-  @ApiQuery({ name: 'status', enum: ['published', 'audit'], description: '状态' })
+  @ApiQuery({ name: 'status', enum: ['published', 'audit', 'rejected'], description: '状态' })
   async getMyPosts(
     @Request() req,
-    @Query('status') status: 'published' | 'audit',
+    @Query('status') status: 'published' | 'audit' | 'rejected',
     @Query('page') page: number = 1,
     @Query('pageSize') pageSize: number = 10,
   ) {
